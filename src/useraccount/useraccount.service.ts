@@ -8,6 +8,13 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class UseraccountService {
   
   constructor(private prisma: PrismaService) {}
+  
+  async activate(id: number, body: { isActive: boolean; }) {
+    return await this.prisma.userAccount.update({
+      where: {id},
+        data: body 
+      } );
+  }
   async findOneById(id: number) {
     return await this.prisma.userAccount.findUnique({
       where: { id },

@@ -39,6 +39,7 @@ export class FoodmenuController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard('jwt'))
   remove(@Param('id') id: string) {
     return this.foodmenuService.remove(+id);
   }

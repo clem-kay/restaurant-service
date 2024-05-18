@@ -11,7 +11,7 @@ export class AuthService {
     private readonly userAccountService: UseraccountService,
     private jwtService: JwtService,
   ) {}
-  
+
   async logout(userId: number) {
     await this.userAccountService.logout(userId);
   }
@@ -39,12 +39,16 @@ export class AuthService {
     );
     if (!passwordMatches) throw new ForbiddenException('Access Denied');
 
-    const tokens = await this.getTokens(userAccount.id, userAccount.username);
-    await this.userAccountService.updateRTHash(
-      userAccount.id,
-      tokens.refresh_token,
-    );
-    return { ...tokens, username: userAccount.username };
+    if (userAccount.isActive) {
+      const tokens = await this.getTokens(userAccount.id, userAccount.username);
+      await this.userAccountService.updateRTHash(
+        userAccount.id,
+        tokens.refresh_token,
+      );
+      return { ...tokens, username: userAccount.username };
+    } else {
+      throw new ForbiddenException('Account is blocked contact Admin');
+    }
   }
 
   async getTokens(userId: number, username: string): Promise<Tokens> {

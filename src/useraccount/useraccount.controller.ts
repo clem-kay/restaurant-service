@@ -3,7 +3,7 @@ import {
   Get,
   Post,
   Body,
-  Patch,
+  Put,
   Param,
   Delete,
   UseGuards,
@@ -33,7 +33,7 @@ export class UseraccountController {
     return this.useraccountService.findOne(+id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   async update(
     @Param('id') id: string,
     @Body() updateUseraccountDto: UpdateUseraccountDto,
@@ -44,5 +44,9 @@ export class UseraccountController {
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.useraccountService.remove(+id);
+  }
+  @Put("/activate/:id")
+  async activate(@Param('id') id:number, @Body() body: {isActive: boolean}){
+  return this.useraccountService.activate(id,body) 
   }
 }
