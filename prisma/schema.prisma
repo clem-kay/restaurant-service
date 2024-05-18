@@ -1,0 +1,67 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String   @unique
+
+  @@map("Role")
+}
+
+model UserProfile {
+  id         Int          @id @default(autoincrement())
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  firstname  String
+  middlename String?
+  lastname   String
+  number     String?
+  email      String?      @unique
+  accountId  Int?         @unique
+  account    UserAccount? @relation(fields: [accountId], references: [id])
+
+  @@map("UserProfile")
+}
+
+model UserAccount {
+  id         Int          @id @default(autoincrement())
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  username   String       @unique
+  password   String?
+  hashedRT   String?
+  user       UserProfile?
+  role       String
+  isActive   Boolean      @default(true)
+  menus      FoodMenu[]       
+
+  @@map("UserAccount")
+}
+
+model FoodMenu {
+  id         Int         @id @default(autoincrement())
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  name       String
+  price       Float
+  imageUrl     String?
+  description  String 
+  userAccountId   Int       // Foreign key referencing UserAccount
+  userAccount   UserAccount @relation(fields: [userAccountId], references: [id])
+
+  @@map("FoodMenu")
+}
