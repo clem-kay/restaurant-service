@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Upload</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 50px;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .file-input {
+      display: block;
+      margin-bottom: 10px;
+    }
+    .upload-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .upload-button:hover {
+      background-color: #45a049;
+    }
+    .result {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Upload a File</h1>
+    <form id="uploadForm">
+      <input type="file" id="fileInput" name="file" class="file-input" required>
+      <button type="submit" class="upload-button">Upload</button>
+    </form>
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0];
+      
+      if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const response = await fetch('http://localhost:5000/api/v1/upload', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!response.ok) {
+            throw new Error('Network response was not ok ' + response.statusText);
+          }
+
+          const result = await response.json();
+          document.getElementById('result').innerHTML = `
+            <p><strong>File URL:</strong> <a href="${result.url}" target="_blank">${result.url}</a></p>
+            <p><strong>Filename:</strong> ${result.filename}</p>
+          `;
+        } catch (error) {
+          document.getElementById('result').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+        }
+      } else {
+        document.getElementById('result').innerHTML = '<p style="color: red;">Please select a file to upload.</p>';
+      }
+    });
+  </script>
+</body>
+</html>

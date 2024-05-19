@@ -33,7 +33,9 @@ export class FoodmenuController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string,@Body() updateFoodmenuDto: CreateFoodmenuDto,
+  update(
+    @Param('id') id: string,
+    @Body() updateFoodmenuDto: CreateFoodmenuDto,
   ) {
     return this.foodmenuService.update(+id, updateFoodmenuDto);
   }
