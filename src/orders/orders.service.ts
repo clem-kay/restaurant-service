@@ -14,7 +14,7 @@ export class OrdersService {
     const createdOrder = await this.prisma.order.create({
       data: {
         ...order,
-        food_status: 'Pending',
+        food_status: 'PENDING',
         totalAmount: totalAmount,
         orderItems: {
           create: orderItems.map((item) => ({
@@ -49,14 +49,22 @@ export class OrdersService {
   }
 
   async remove(id: number) {
-    await this.prisma.order.delete({
+    const order = await this.prisma.order.findUnique({
       where: { id },
     });
 
-    return `Order with id ${id} has been successfully deleted.`;
+    if (order.food_status == 'PENDING' || order.food_status == 'Pending') {
+      await this.prisma.order.delete({
+        where: { id },
+      });
+
+      return {message:`Order with id ${id} has been successfully deleted.`};
+    } else {
+      return {message:'Order is being prepared cannot be deleted'};
+    }
   }
 
-  async updateFoodStated(id: number, status: string) {
+  async updateFoodStatus(id: number, status: string) {
     return await this.prisma.order.update({
       where: { id },
       data: {
