@@ -1,0 +1,25 @@
+sample json data when creating an order
+{
+    //this will be the details for the order
+  "order": {
+    "totalAmount": 100.0,
+    "name": "Jason",
+    "number": "0541186989",
+    "location": "123 Street",
+    "other_info": "Additional info",
+    "pickup_status": "DINEIN"
+  },
+  //this will be the food that is being ordere
+  "orderItems": [
+    {
+      "quantity": 2,
+      "price": 10.0,
+      "foodMenuId": 2
+    },
+    {
+      "quantity": 1,
+      "price": 5.0,
+      "foodMenuId": 4
+    }
+  ]
+}
