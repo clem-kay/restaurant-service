@@ -9,6 +9,7 @@ import { UseraccountModule } from './useraccount/useraccount.module';
 import { FoodmenuModule } from './foodmenu/foodmenu.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { join } from 'path';
   AuthModule,
   UseraccountModule,
   PrismaModule,
-  FoodmenuModule],
+  FoodmenuModule,
+  OrdersModule],
   controllers: [AppController],
   providers: [AppService,PrismaService],
 })

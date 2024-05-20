@@ -38,30 +38,59 @@ model UserProfile {
 }
 
 model UserAccount {
-  id         Int          @id @default(autoincrement())
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  username   String       @unique
-  password   String?
-  hashedRT   String?
-  user       UserProfile?
-  role       String
-  isActive   Boolean      @default(true)
-  menus      FoodMenu[]       
+  id        Int          @id @default(autoincrement())
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  username  String       @unique
+  password  String?
+  hashedRT  String?
+  user      UserProfile?
+  role      String
+  isActive  Boolean      @default(true)
+  menus     FoodMenu[]
 
   @@map("UserAccount")
 }
 
 model FoodMenu {
-  id         Int         @id @default(autoincrement())
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  name       String
-  price       Float
-  imageUrl     String?
-  description  String 
-  userAccountId   Int       // Foreign key referencing UserAccount
+  id            Int         @id @default(autoincrement())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  name          String
+  price         Float
+  imageUrl      String?
+  description   String
+  userAccountId Int // Foreign key referencing UserAccount
   userAccount   UserAccount @relation(fields: [userAccountId], references: [id])
+  OrderItem     OrderItem[]
 
   @@map("FoodMenu")
+}
+
+model Order {
+  id            Int         @id @default(autoincrement())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  food_status   String
+  totalAmount   Float
+  name          String
+  number        String
+  location      String
+  other_info    String
+  pickup_status String
+  orderItems    OrderItem[]
+
+  @@map("Order")
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  quantity   Int
+  price      Float
+  foodMenuId Int
+  foodMenu   FoodMenu @relation(fields: [foodMenuId], references: [id],onDelete: Cascade)
+  orderId    Int
+  order      Order    @relation(fields: [orderId], references: [id],onDelete: Cascade)
+
+  @@map("OrderItem")
 }
