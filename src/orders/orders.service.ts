@@ -2,10 +2,57 @@ import { Injectable } from '@nestjs/common';
 import { CreateOrderDto, OrderItemDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { OrderGateway } from './order.gateway';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private orderGateway: OrderGateway,
+  ) {}
+  async getTotalOrderToday() {
+    const today = new Date(); // Get the current date
+
+    const startOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+
+    const endOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() + 1,
+    );
+
+    const data = await this.prisma.order.findMany({
+      where: {
+        createdAt: {
+          gte: startOfToday,
+          lt: endOfToday,
+        },
+      },
+    });
+    return data;
+  }
+  async getTotalOrderPrevious() {
+    const today = new Date();
+    const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+    const startOfYesterday = new Date(startOfToday);
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+    const endOfYesterday = new Date(startOfYesterday);
+    endOfYesterday.setHours(23, 59, 59, 999);
+
+    const data = await this.prisma.order.findMany({
+      where: {
+        createdAt: {
+          gte: startOfYesterday,
+          lt: startOfToday,
+        },
+      },
+    });
+    return data;
+  }
 
   async create(createOrderDto: CreateOrderDto) {
     const { order, orderItems } = createOrderDto;
@@ -23,11 +70,19 @@ export class OrdersService {
             foodMenuId: item.foodMenuId,
           })),
         },
+        statusHistory: {
+          create: {
+            status: 'PENDING',
+            userAccountId: null,
+          },
+        },
       },
       include: {
         orderItems: true,
+        statusHistory: true,
       },
     });
+    this.orderGateway.notifyNewOrder(createOrderDto);
     return createdOrder;
   }
 
@@ -58,17 +113,32 @@ export class OrdersService {
         where: { id },
       });
 
-      return {message:`Order with id ${id} has been successfully deleted.`};
+      return { message: `Order with id ${id} has been successfully deleted.` };
     } else {
-      return {message:'Order is being prepared cannot be deleted'};
+      return { message: 'Order is being prepared cannot be deleted' };
     }
   }
 
-  async updateFoodStatus(id: number, status: string) {
+  async updateFoodStatus(id: number, body: { status: string; userId: number }) {
     return await this.prisma.order.update({
       where: { id },
       data: {
-        food_status: status,
+        food_status: body.status,
+        statusHistory: {
+          create: {
+            status: body.status,
+            userAccountId: body.userId,
+          },
+        },
+      },
+    });
+  }
+
+  async updatePayment(id: number, status: boolean) {
+    return await this.prisma.order.update({
+      where: { id },
+      data: {
+        paid: status,
       },
     });
   }

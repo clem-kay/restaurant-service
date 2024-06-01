@@ -17,7 +17,6 @@ export class FoodmenuController {
   constructor(private readonly foodmenuService: FoodmenuService) {}
 
   @Post()
-  @UseGuards(AuthGuard('jwt'))
   create(@Body() createFoodmenuDto: CreateFoodmenuDto) {
     return this.foodmenuService.create(createFoodmenuDto);
   }
@@ -41,7 +40,6 @@ export class FoodmenuController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard('jwt'))
   remove(@Param('id') id: string) {
     return this.foodmenuService.remove(+id);
   }

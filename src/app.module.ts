@@ -10,6 +10,7 @@ import { FoodmenuModule } from './foodmenu/foodmenu.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { OrdersModule } from './orders/orders.module';
+import { OrderGateway } from './orders/order.gateway';
 
 @Module({
   imports: [
@@ -24,6 +25,6 @@ import { OrdersModule } from './orders/orders.module';
   FoodmenuModule,
   OrdersModule],
   controllers: [AppController],
-  providers: [AppService,PrismaService],
+  providers: [AppService,PrismaService,OrderGateway],
 })
 export class AppModule {}

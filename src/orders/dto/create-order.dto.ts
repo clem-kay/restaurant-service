@@ -50,7 +50,7 @@ export class OrderDto {
   readonly location: string;
   readonly other_info: string;
   @IsEnum(PickUp_Status, {
-    message: 'role must be either PENDING or ACCEPTED or COOKING or COMPLETED ',
+    message: 'role must be either DINEIN or DELIVERY ',
   })
   @ApiProperty({
     type: String,

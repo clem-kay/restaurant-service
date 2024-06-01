@@ -1,5 +1,8 @@
 export type SignIn ={
+    id:number,
     access_token:string,
     refresh_token:string,
-    username:string
+    username:string,
+    message:string,
+
 }

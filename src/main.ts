@@ -22,6 +22,8 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
   app.enableCors();
 
-  await app.listen(process.env.PORT);
+  const port = Number(process.env.PORT)
+
+  await app.listen(port);
 }
 bootstrap();

@@ -1,9 +1,10 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { LoginDto } from './dto/LoginDto';
 import * as bcrypt from 'bcrypt';
 import { UseraccountService } from 'src/useraccount/useraccount.service';
 import { JwtService } from '@nestjs/jwt';
 import { Tokens, SignIn } from 'src/types';
+import { log } from 'util';
 
 @Injectable()
 export class AuthService {
@@ -11,6 +12,7 @@ export class AuthService {
     private readonly userAccountService: UseraccountService,
     private jwtService: JwtService,
   ) {}
+  private readonly logger = new Logger(AuthService.name);
 
   async logout(userId: number) {
     await this.userAccountService.logout(userId);
@@ -29,15 +31,32 @@ export class AuthService {
   }
 
   async login(loginDTO: LoginDto): Promise<SignIn> {
+    this.logger.debug('login dto receieved for ' + loginDTO.username);
     const userAccount = await this.userAccountService.findOneByUsername(
       loginDTO.username.toLowerCase(),
     );
-    if (!userAccount) throw new ForbiddenException('Access Denied');
+    if (!userAccount) {
+      return {
+        id: null,
+        access_token: '',
+        refresh_token: '',
+        username: '',
+        message: 'Username or password invalid',
+      };
+    }
     const passwordMatches = await bcrypt.compare(
       loginDTO.password,
       userAccount.password,
     );
-    if (!passwordMatches) throw new ForbiddenException('Access Denied');
+    if (!passwordMatches) {
+      return {
+        id: null,
+        access_token: '',
+        refresh_token: '',
+        username: '',
+        message: 'Username or password invalid',
+      };
+    }
 
     if (userAccount.isActive) {
       const tokens = await this.getTokens(userAccount.id, userAccount.username);
@@ -45,9 +64,23 @@ export class AuthService {
         userAccount.id,
         tokens.refresh_token,
       );
-      return { ...tokens, username: userAccount.username };
+      return {
+        id: userAccount.id,
+        ...tokens,
+        username: userAccount.username,
+        message: 'sucess',
+      };
     } else {
-      throw new ForbiddenException('Account is blocked contact Admin');
+      this.logger.debug(
+        'login is uncessuful because ' + loginDTO.username + 'is blocked',
+      );
+      return {
+        id:null,
+        access_token: '',
+        refresh_token: '',
+        username: '',
+        message: 'Account is blocked',
+      };
     }
   }
 

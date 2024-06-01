@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Put,
+  Logger,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -15,6 +16,17 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
+
+  private readonly logger = new Logger(OrdersController.name);
+  @Get('/today-order')
+  getTotalSalesToday(){
+    this.logger.debug('getting today\'s order')
+    return this.ordersService.getTotalOrderToday();
+  }
+  @Get('/previous')
+  getPreviousTotalOrder(){
+    return this.ordersService.getTotalOrderPrevious()
+  }
 
   @Post()
   create(@Body() createOrderDto: CreateOrderDto) {
@@ -43,7 +55,20 @@ export class OrdersController {
   }
 
   @Put('/update-status/:id')
-  updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
-    return this.ordersService.updateFoodStatus(+id, body.status);
+  updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string; userId: number },
+  ) {
+    return this.ordersService.updateFoodStatus(+id, body);
   }
+
+  @Put('/update-payment/:id')
+  updatePayment(@Param('id') id: string, @Body() body: { status: boolean }) {
+    return this.ordersService.updatePayment(+id, body.status);
+  }
+
+  // @Get('/total-orders')
+  // getTotalOrderToday() { 
+  //   this.ordersService.getTotalOrderToday();
+  // }
 }
