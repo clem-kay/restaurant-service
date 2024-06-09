@@ -9,7 +9,9 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private orderGateway: OrderGateway,
-  ) {}
+  ) {
+  }
+
   async getTotalOrderToday() {
     const today = new Date(); // Get the current date
 
@@ -35,6 +37,7 @@ export class OrdersService {
     });
     return data;
   }
+
   async getTotalOrderPrevious() {
     const today = new Date();
     const startOfToday = new Date(today.setHours(0, 0, 0, 0));
@@ -94,10 +97,15 @@ export class OrdersService {
     return await this.prisma.order.findUnique({
       where: { id },
       include: {
-        orderItems: true,
+        orderItems: {
+          include: {
+            foodMenu: true,
+          },
+        },
       },
     });
   }
+
   //To do this one
   update(id: number, updateOrderDto: UpdateOrderDto) {
     return `This action updates a #${id} order`;

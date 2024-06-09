@@ -11,6 +11,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { OrdersModule } from './orders/orders.module';
 import { OrderGateway } from './orders/order.gateway';
+import { ReservationModule } from './reservation/reservation.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { OrderGateway } from './orders/order.gateway';
   UseraccountModule,
   PrismaModule,
   FoodmenuModule,
-  OrdersModule],
+  OrdersModule,
+  ReservationModule],
   controllers: [AppController],
   providers: [AppService,PrismaService,OrderGateway],
 })
