@@ -54,16 +54,18 @@ model UserAccount {
 }
 
 model FoodMenu {
-  id            Int         @id @default(autoincrement())
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id            Int          @id @default(autoincrement())
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
   name          String
   price         Float
   imageUrl      String?
   description   String
   userAccountId Int // Foreign key referencing UserAccount
-  userAccount   UserAccount @relation(fields: [userAccountId], references: [id])
+  userAccount   UserAccount  @relation(fields: [userAccountId], references: [id])
   OrderItem     OrderItem[]
+  categoryId    Int
+  category      FoodCategory @relation(fields: [categoryId], references: [id])
 
   @@map("FoodMenu")
 }
@@ -118,8 +120,19 @@ model Reservation {
   date           DateTime
   time           String
   numberOfGuests Int
-  name    String
-  phone   String
+  name           String
+  phone          String
 
   @@map("Reservation")
+}
+
+model FoodCategory {
+  id          Int        @id @default(autoincrement())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  name        String
+  description String?
+  FoodMenu    FoodMenu[]
+
+  @@map("FoodCategory")
 }

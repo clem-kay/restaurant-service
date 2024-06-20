@@ -35,5 +35,11 @@ export class CreateFoodmenuDto {
         type: Number,
         description: 'This is an required property, should be the id of user creating or updating the menu item',
       })
-    userAccountId: number; // Foreign key referencing UserAccount
+    userAccountId: number; 
+    @IsNotEmpty()
+    @ApiProperty({
+        type: Number,
+        description: 'This is an required property, should be the id of food category the food belongs to',
+      })
+    categoryId: number; 
 }

@@ -12,6 +12,7 @@ import { join } from 'path';
 import { OrdersModule } from './orders/orders.module';
 import { OrderGateway } from './orders/order.gateway';
 import { ReservationModule } from './reservation/reservation.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { ReservationModule } from './reservation/reservation.module';
   PrismaModule,
   FoodmenuModule,
   OrdersModule,
-  ReservationModule],
+  ReservationModule,
+  CategoryModule],
   controllers: [AppController],
   providers: [AppService,PrismaService,OrderGateway],
 })

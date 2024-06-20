@@ -47,4 +47,13 @@ export class FoodmenuService {
       where: { id },
     });
   }
+
+  async findAllByCategory(categoryId: number) {
+    return await this.prisma.foodMenu.findMany({
+      where: { categoryId },
+      include:{
+        category:true
+      }
+    });
+  }
 }

@@ -43,4 +43,8 @@ export class FoodmenuController {
   remove(@Param('id') id: string) {
     return this.foodmenuService.remove(+id);
   }
+  @Get('get-by-category/:id')
+  findAllByCategory(@Param('id') id: string) {
+    return this.foodmenuService.findAllByCategory(+id);
+}
 }
