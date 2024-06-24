@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { LoginDto } from './dto/LoginDto';
 import * as bcrypt from 'bcrypt';
 import { UseraccountService } from 'src/useraccount/useraccount.service';
@@ -36,26 +36,14 @@ export class AuthService {
       loginDTO.username.toLowerCase(),
     );
     if (!userAccount) {
-      return {
-        id: null,
-        access_token: '',
-        refresh_token: '',
-        username: '',
-        message: 'Username or password invalid',
-      };
+      throw new UnauthorizedException('Username or password invalid');
     }
     const passwordMatches = await bcrypt.compare(
       loginDTO.password,
       userAccount.password,
     );
     if (!passwordMatches) {
-      return {
-        id: null,
-        access_token: '',
-        refresh_token: '',
-        username: '',
-        message: 'Username or password invalid',
-      };
+      throw new UnauthorizedException('Username or password invalid');
     }
 
     if (userAccount.isActive) {
@@ -68,19 +56,13 @@ export class AuthService {
         id: userAccount.id,
         ...tokens,
         username: userAccount.username,
-        message: 'sucess',
+        message: 'success',
       };
     } else {
       this.logger.debug(
-        'login is uncessuful because ' + loginDTO.username + 'is blocked',
+        'login is uncessufull because ' + loginDTO.username + 'is blocked',
       );
-      return {
-        id:null,
-        access_token: '',
-        refresh_token: '',
-        username: '',
-        message: 'Account is blocked',
-      };
+      throw new UnauthorizedException('Account is blocked');
     }
   }
 
