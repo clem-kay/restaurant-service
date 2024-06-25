@@ -1,19 +1,23 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CreateUseraccountDto } from './dto/create-useraccount.dto';
-import { UpdateUseraccountDto } from './dto/update-useraccount.dto';
+import * as bcrypt from 'bcrypt';
 import { hashPassword } from 'src/core/helpers';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ChangePasswordDTO } from 'src/auth/dto/LoginDto';
 
 @Injectable()
 export class UseraccountService {
-  
   constructor(private prisma: PrismaService) {}
-  
-  async activate(id: number, body: { isActive: boolean; }) {
+
+  async activate(id: number, body: { isActive: boolean }) {
     return await this.prisma.userAccount.update({
-      where: {id},
-        data: body 
-      } );
+      where: { id },
+      data: body,
+    });
   }
   async findOneById(id: number) {
     return await this.prisma.userAccount.findUnique({
@@ -22,53 +26,49 @@ export class UseraccountService {
   }
   async logout(userId: number) {
     await this.prisma.userAccount.updateMany({
-      where:{
-        id:userId,hashedRT:{
-          not: null
+      where: {
+        id: userId,
+        hashedRT: {
+          not: null,
         },
       },
-      data:{
-        hashedRT:null
-      }
-    })
+      data: {
+        hashedRT: null,
+      },
+    });
   }
   async create(userAccount: CreateUseraccountDto) {
-    return await this.prisma.userAccount.create({
+    const userCreated =  await this.prisma.userAccount.create({
       data: {
         ...userAccount,
-        username:userAccount.username.toLowerCase(),
+        username: userAccount.username.toLowerCase(),
         password: await hashPassword(userAccount.password),
       },
     });
+
+    return {user:userCreated,message:"success"}
   }
 
-  
-    async findOneByUsername(username: string) {
-      return await this.prisma.userAccount.findUnique({
-        where: { username },
-      });
-    }
-  
-  async findAll() {
-    return await this.prisma.userAccount.findMany({
-      select: { username: true, role: true,isActive:true },
+  async findOneByUsername(username: string) {
+    return await this.prisma.userAccount.findUnique({
+      where: { username },
     });
   }
 
-  async findOne(id: number) {
-    return `This action returns a #${id} useraccount`;
+  async findAll() {
+    return await this.prisma.userAccount.findMany({
+      select: { username: true, role: true, isActive: true },
+    });
   }
 
   async update(id: number, data: any) {
-        
     return await this.prisma.userAccount.update({
-      where: {id},
-        data: { ...data }
-      } );
-    
+      where: { id },
+      data: { ...data },
+    });
   }
 
-  async  remove(id: number) {
+  async remove(id: number) {
     return `This action removes a #${id} useraccount`;
   }
 
@@ -78,6 +78,29 @@ export class UseraccountService {
       where: { id },
       data: {
         hashedRT: hash,
+      },
+    });
+  }
+
+  async changePassword(changePasswordDTO: ChangePasswordDTO) {
+  
+    const user = await this.findOneByUsername(changePasswordDTO.username);
+    if (!user) throw new ForbiddenException('Invalid Username');
+
+    const passwordMatches = await bcrypt.compare(
+      changePasswordDTO.oldPassword,
+      user.password,
+    );
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Username or password invalid');
+    }
+
+    return this.prisma.userAccount.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        password: changePasswordDTO.newPassword,
       },
     });
   }

@@ -19,7 +19,7 @@ import { LoginDto } from './dto/LoginDto';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 
-@ApiTags('Auth')
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);

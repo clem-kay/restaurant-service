@@ -10,13 +10,13 @@ export class CreateUseraccountDto {
   @IsNotEmpty()
   @ApiProperty({
     type: String,
-    description: 'This is a required property, should be an email',
+    description: 'This is a required property, should be a username',
   })
   readonly username: string;
   @IsNotEmpty()
   @ApiProperty({
     type: String,
-    description: 'This is a required property, should be an email',
+    description: 'This is a required property, should be a default password an admin set for user',
   })
   readonly password: string;
   @IsEnum(Role, {
