@@ -85,7 +85,7 @@ export class UseraccountController {
   return this.useraccountService.activate(id,body) 
   }
 
-  @Put('change-password')
+  @Post('change-password')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: 'Changing password' })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })

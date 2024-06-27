@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   UnauthorizedException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { CreateUseraccountDto } from './dto/create-useraccount.dto';
 import * as bcrypt from 'bcrypt';
@@ -84,24 +85,31 @@ export class UseraccountService {
 
   async changePassword(changePasswordDTO: ChangePasswordDTO) {
   
-    const user = await this.findOneByUsername(changePasswordDTO.username);
-    if (!user) throw new ForbiddenException('Invalid Username');
+      const user = await this.findOneByUsername(changePasswordDTO.username);
+      console.log(user)
+      if (!user) throw new ForbiddenException('Invalid Username');
 
-    const passwordMatches = await bcrypt.compare(
-      changePasswordDTO.oldPassword,
-      user.password,
-    );
-    if (!passwordMatches) {
-      throw new UnauthorizedException('Username or password invalid');
-    }
+      const passwordMatches = await bcrypt.compare(
+        changePasswordDTO.oldPassword,
+        user.password,
+      );
+      if (!passwordMatches) {
+        throw new UnauthorizedException('Passwords do not match');
+      }
+  
+      const changedPassword =  this.prisma.userAccount.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          password: await hashPassword(changePasswordDTO.newPassword),
+        },
+      });
 
-    return this.prisma.userAccount.update({
-      where: {
-        id: user.id,
-      },
-      data: {
-        password: changePasswordDTO.newPassword,
-      },
-    });
+      if (!changedPassword){
+          throw new UnprocessableEntityException("Unable to change passsword")
+      }else {
+        return {message:"success"}
+      }
   }
 }
