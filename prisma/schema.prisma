@@ -65,7 +65,7 @@ model FoodMenu {
   userAccount   UserAccount  @relation(fields: [userAccountId], references: [id])
   OrderItem     OrderItem[]
   categoryId    Int
-  category      FoodCategory @relation(fields: [categoryId], references: [id])
+  category      FoodCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@map("FoodMenu")
 }

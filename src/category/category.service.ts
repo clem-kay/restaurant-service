@@ -13,7 +13,21 @@ export class CategoryService {
   }
 
   async findAll() {
-    return await this.prisma.foodCategory.findMany({});
+     const categories = await this.prisma.foodCategory.findMany({
+      include :{
+        _count:{
+          select:{
+            FoodMenu:true,
+          } 
+        }
+      }
+     });
+     return categories.map(
+      category =>({
+        ...category,
+        menuCount:category._count.FoodMenu
+      })
+     )
   }
 
   async findOne(id: number) {
@@ -30,8 +44,22 @@ export class CategoryService {
   }
 
   async remove(id: number) {
-    return await this.prisma.foodCategory.delete({
-      where: { id },
+    await this.prisma.foodMenu.deleteMany({
+      where: {
+        categoryId: id,
+      },
     });
+  
+    // Now delete the FoodCategory
+    const deleted = await this.prisma.foodCategory.delete({
+      where: {
+        id: id,
+      },
+    });
+    if (deleted){
+      return {message:"success"}
+    }else{
+      return {message:"unable to deleted category"}
+    }
   }
 }
