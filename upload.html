@@ -55,7 +55,7 @@
         formData.append('file', file);
 
         try {
-          const response = await fetch('http://localhost:5000/api/v1/upload', {
+          const response = await fetch('https://restaurant-service-9ee4.onrender.com/api/v1/upload', {
             method: 'POST',
             body: formData
           });
@@ -67,7 +67,7 @@
           const result = await response.json();
           document.getElementById('result').innerHTML = `
             <p><strong>File URL:</strong> <a href="${result.url}" target="_blank">${result.url}</a></p>
-            <p><strong>Filename:</strong> ${result.filename}</p>
+            <p><strong>Filename:</strong> ${result.url}</p>
           `;
         } catch (error) {
           document.getElementById('result').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
