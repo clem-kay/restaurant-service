@@ -18,6 +18,15 @@ export class CreateFoodmenuDto {
   })
   price: number;
 
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  @ApiProperty({
+    type: Number,
+    description: 'This is a required property, should be the quantity of food',
+  })
+  quantity: number;
+
   @IsOptional()
   @ApiProperty({
     type: String,
