@@ -73,10 +73,9 @@ export class OrdersService {
   }
 
   async create(createOrderDto: CreateOrderDto) {
-    this.logger.log('Creating a new order');
     const { order, orderItems } = createOrderDto;
     const totalAmount = orderItems.reduce((sum, item) => sum + item.price, 0);
-
+    console.log(order)
     try {
       const createdOrder = await this.prisma.order.create({
         data: {
@@ -102,7 +101,7 @@ export class OrdersService {
           statusHistory: true,
         },
       });
-      this.orderGateway.notifyNewOrder(createOrderDto);
+      // this.orderGateway.notifyNewOrder(createdOrder);
       this.logger.log('Successfully created a new order');
       return createdOrder;
     } catch (error) {
@@ -111,12 +110,33 @@ export class OrdersService {
     }
   }
 
-  async findAll() {
+  async findAll(): Promise<any[]> {
     this.logger.log('Fetching all orders');
     try {
-      const orders = await this.prisma.order.findMany({});
+      const orders = await this.prisma.order.findMany({
+        include: {
+          orderItems: true, // Include orderItems to count them
+        },
+      });
+      
+      const ordersWithFoodCount = orders.map((order) => ({
+        id: order.id,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+        food_status: order.food_status,
+        totalAmount: order.totalAmount,
+        name: order.name,
+        number: order.number,
+        location: order.location,
+        other_info: order.other_info,
+        pickup_status: order.pickup_status,
+        comment: order.comment,
+        paid: order.paid,
+        totalFoodItems: order.orderItems.length,
+      }));
+
       this.logger.log('Successfully fetched all orders');
-      return orders;
+      return ordersWithFoodCount;
     } catch (error) {
       this.logger.error('Failed to fetch all orders', error.stack);
       throw error;

@@ -46,7 +46,7 @@ export class OrderDto {
   })
   readonly name: string;
 
-@IsNotEmpty()
+  @IsNotEmpty()
   @IsString()
   @ApiProperty({
     type: String,
@@ -73,7 +73,7 @@ export class OrderDto {
   })
   readonly other_info: string;
 
- @IsNotEmpty()
+  @IsNotEmpty()
   @IsEnum(PickUp_Status, {
     message: 'Role must be either DINEIN or DELIVERY',
   })
