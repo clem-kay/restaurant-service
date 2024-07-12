@@ -23,6 +23,7 @@ async function bootstrap() {
   app.enableCors();
 
   const port = Number(process.env.PORT)
+  console.log("Application started at port"+ port)
 
   await app.listen(port);
 }

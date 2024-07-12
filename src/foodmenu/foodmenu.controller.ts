@@ -14,18 +14,20 @@ import {
   ApiOkResponse,
   ApiTags,
   ApiUnprocessableEntityResponse,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
 } from '@nestjs/swagger';
 import { FoodmenuService } from './foodmenu.service';
 import { CreateFoodmenuDto } from './dto/create-foodmenu.dto';
 
-@ApiTags('UserAccount')
+@ApiTags('FoodMenu')
 @Controller('foodmenu')
 export class FoodmenuController {
   constructor(private readonly foodmenuService: FoodmenuService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOkResponse({ description: 'User Creation' })
+  @ApiCreatedResponse({ description: 'Food menu successfully created.' })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
   @ApiForbiddenResponse({ description: 'Unauthorized Request' })
   create(@Body() createFoodmenuDto: CreateFoodmenuDto) {
@@ -34,16 +36,17 @@ export class FoodmenuController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-@ApiOkResponse({ description: 'User Creation' })
-@ApiUnprocessableEntityResponse({ description: 'Bad Request' })
-@ApiForbiddenResponse({ description: 'Unauthorized Request' })
+  @ApiOkResponse({ description: 'List of food menus retrieved successfully.' })
+  @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
+  @ApiForbiddenResponse({ description: 'Unauthorized Request' })
   findAll() {
     return this.foodmenuService.findAll();
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ description: 'User Creation' })
+  @ApiOkResponse({ description: 'Food menu retrieved successfully.' })
+  @ApiNotFoundResponse({ description: 'Food menu not found.' })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
   @ApiForbiddenResponse({ description: 'Unauthorized Request' })
   findOne(@Param('id') id: string) {
@@ -52,7 +55,8 @@ export class FoodmenuController {
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ description: 'User Creation' })
+  @ApiOkResponse({ description: 'Food menu updated successfully.' })
+  @ApiNotFoundResponse({ description: 'Food menu not found.' })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
   @ApiForbiddenResponse({ description: 'Unauthorized Request' })
   update(
@@ -64,15 +68,18 @@ export class FoodmenuController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOkResponse({ description: 'User Creation' })
+  @ApiOkResponse({ description: 'Food menu deleted successfully.' })
+  @ApiNotFoundResponse({ description: 'Food menu not found.' })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
   @ApiForbiddenResponse({ description: 'Unauthorized Request' })
   remove(@Param('id') id: string) {
     return this.foodmenuService.remove(+id);
   }
+
   @Get('get-by-category/:id')
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ description: 'User Creation' })
+  @ApiOkResponse({ description: 'Food menu by category retrieved successfully.' })
+  @ApiNotFoundResponse({ description: 'Category not found.' })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
   @ApiForbiddenResponse({ description: 'Unauthorized Request' })
   findAllByCategory(@Param('id') id: string) {
