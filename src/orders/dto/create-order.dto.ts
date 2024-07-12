@@ -17,40 +17,65 @@ export class OrderDto {
   @IsOptional()
   @IsEnum(OrderStatus, {
     message:
-      'order status must be either PENDING or ACCEPTED or COOKING or COMPLETED ',
+      'Order status must be either PENDING, ACCEPTED, COOKING, or COMPLETED',
   })
   @ApiProperty({
-    type: OrderStatus,
+    type: String,
     description:
       'This is an optional property, will be set to default at the backend',
     enum: OrderStatus,
+    default: OrderStatus.PENDING,
   })
   readonly food_status: OrderStatus = OrderStatus.PENDING;
+
   @IsOptional()
+  @IsNumber()
   @ApiProperty({
     type: Number,
     description:
-      'This is an optional property, will be calculated at the backend if the frntedn do not add it',
+      'This is an optional property, will be calculated at the backend if the frontend does not add it',
   })
-  readonly totalAmount: number;
+  readonly totalAmount?: number;
+
   @IsNotEmpty()
+  @IsString()
   @ApiProperty({
     type: String,
     description:
       'This is a required property, the name of the person ordering the food',
   })
   readonly name: string;
-  @IsNotEmpty()
+
+@IsNotEmpty()
+  @IsString()
   @ApiProperty({
     type: String,
     description:
       'This is a required property, the phone number of the person ordering the food',
   })
   readonly number: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    type: String,
+    description:
+      'This is an optional property, the location of the person ordering the food',
+  })
   readonly location: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    type: String,
+    description:
+      'This is an optional property, other information related to the order',
+  })
   readonly other_info: string;
+
+ @IsNotEmpty()
   @IsEnum(PickUp_Status, {
-    message: 'role must be either DINEIN or DELIVERY ',
+    message: 'Role must be either DINEIN or DELIVERY',
   })
   @ApiProperty({
     type: String,
@@ -61,25 +86,40 @@ export class OrderDto {
 }
 
 export class OrderItemDto {
+  @IsNotEmpty()
   @IsNumber()
-  quantity: number;
+  @ApiProperty({
+    type: Number,
+    description: 'This is a required property, the quantity of the item',
+  })
+  readonly quantity: number;
 
+  @IsNotEmpty()
   @IsNumber()
-  price: number;
+  @ApiProperty({
+    type: Number,
+    description: 'This is a required property, the price of the item',
+  })
+  readonly price: number;
 
+  @IsNotEmpty()
   @IsNumber()
-  foodMenuId: number;
+  @ApiProperty({
+    type: Number,
+    description: 'This is a required property, the ID of the food menu item',
+  })
+  readonly foodMenuId: number;
 }
 
 export class CreateOrderDto {
-    @ValidateNested()
-    @Type(() => OrderDto)
-    @ApiProperty({ type: OrderDto })
-    order: OrderDto;
-  
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => OrderItemDto)
-    @ApiProperty({ type: [OrderItemDto] })
-    orderItems: OrderItemDto[];
-  }
+  @ValidateNested()
+  @Type(() => OrderDto)
+  @ApiProperty({ type: OrderDto })
+  readonly order: OrderDto;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemDto)
+  @ApiProperty({ type: [OrderItemDto] })
+  readonly orderItems: OrderItemDto[];
+}
