@@ -61,7 +61,7 @@ model FoodMenu {
   price         Float
   imageUrl      String?
   description   String
-  quantity      Int           @default(1)
+  quantity      Int
   userAccountId Int // Foreign key referencing UserAccount
   userAccount   UserAccount  @relation(fields: [userAccountId], references: [id])
   OrderItem     OrderItem[]

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreateFoodmenuDto } from './dto/create-foodmenu.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -47,7 +47,7 @@ export class FoodmenuService {
       return foodMenuItem;
     } catch (error) {
       this.logger.error(`Failed to fetch menu item with ID: ${id}`, error.stack);
-      throw error;
+      throw new NotFoundException(`Failed to fetch menu item with ID: ${id} not found`);
     }
   }
 
