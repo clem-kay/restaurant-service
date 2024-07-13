@@ -102,4 +102,9 @@ export class CategoryService {
       throw error;
     }
   }
+  async findTotalCategories(){
+    this.logger.log('Getting the total categories')
+    return await this.prisma.foodCategory.count()
+    
+  }
 }

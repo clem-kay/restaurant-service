@@ -3,6 +3,8 @@ import { CreateOrderDto, OrderItemDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { OrderGateway } from './order.gateway';
+import { ClientOrderDto } from './dto/client-order.dto';
+import { OrderStatus, PickUp_Status } from 'src/enums/app.enum';
 
 @Injectable()
 export class OrdersService {
@@ -72,15 +74,44 @@ export class OrdersService {
     }
   }
 
+  createClientOrder(clientOrderDto: ClientOrderDto) {
+    this.logger.log("Since the client side data is different we transform it to suit what we use at the backend")
+    this.logger.log("and save what we want ")
+    const transformedOrderItems = clientOrderDto.orderItems.map(item => ({
+      quantity: item.quantity,
+      price: item.price,
+      foodMenuId: item.id,
+    }));
+
+    const pickup = clientOrderDto.order.pickup_status ? clientOrderDto.order.pickup_status : PickUp_Status.DELIVERY;
+  
+    const transformedOrder = {
+      food_status: OrderStatus.PENDING,
+      totalAmount: undefined,
+      name: clientOrderDto.order.clientName,
+      number: clientOrderDto.order.phone.toString(), 
+      location: clientOrderDto.order.clientAddress,
+      other_info: '', 
+      pickup_status: pickup
+    };
+    
+     const order = {
+      order: transformedOrder,
+      orderItems: transformedOrderItems,
+    };
+
+    return this.create(order)
+  }
+
   async create(createOrderDto: CreateOrderDto) {
     const { order, orderItems } = createOrderDto;
-    const totalAmount = orderItems.reduce((sum, item) => sum + item.price, 0);
+    const totalAmount = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
     console.log(order)
     try {
       const createdOrder = await this.prisma.order.create({
         data: {
           ...order,
-          food_status: 'PENDING',
+          food_status: OrderStatus.PENDING,
           totalAmount: totalAmount,
           orderItems: {
             create: orderItems.map((item) => ({
@@ -91,7 +122,7 @@ export class OrdersService {
           },
           statusHistory: {
             create: {
-              status: 'PENDING',
+              status: OrderStatus.PENDING,
               userAccountId: null,
             },
           },
@@ -232,5 +263,10 @@ export class OrdersService {
       this.logger.error(`Failed to update payment status for order with ID: ${id}`, error.stack);
       throw error;
     }
+  }
+
+  async findTotalOrders(){
+    this.logger.log('Getting all the orders from the database')
+    return await this.prisma.order.count()
   }
 }

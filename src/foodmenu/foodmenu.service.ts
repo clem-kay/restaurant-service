@@ -96,4 +96,11 @@ export class FoodmenuService {
       throw error;
     }
   }
+
+  async findTotalFoodMenu(){
+    this.logger.log('Getting all the foodmenu from the database')
+    const totalFoodMenu = await this.prisma.foodMenu.count()
+    this.logger.log(`Successfully fetched totalfood menu items ${totalFoodMenu}`);
+    return totalFoodMenu
+  }
 }

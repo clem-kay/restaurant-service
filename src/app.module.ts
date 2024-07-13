@@ -13,6 +13,7 @@ import { OrdersModule } from './orders/orders.module';
 import { OrderGateway } from './orders/order.gateway';
 import { ReservationModule } from './reservation/reservation.module';
 import { CategoryModule } from './category/category.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -27,7 +28,8 @@ import { CategoryModule } from './category/category.module';
   FoodmenuModule,
   OrdersModule,
   ReservationModule,
-  CategoryModule],
+  CategoryModule,
+  DashboardModule],
   controllers: [AppController],
   providers: [AppService,PrismaService,OrderGateway],
 })

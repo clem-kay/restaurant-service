@@ -20,6 +20,7 @@ import {
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { ClientOrderDto } from './dto/client-order.dto'
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -51,6 +52,16 @@ export class OrdersController {
     this.logger.debug("creating a new order" + createOrderDto) 
     this.logger.debug("creating a new order for " + createOrderDto.order.name) 
     return this.ordersService.create(createOrderDto);
+  }
+
+  @Post('client-order')
+  @ApiOperation({ summary: 'Create a new order' })
+  @ApiOkResponse({ description: 'The order has been successfully created' })
+  @ApiBadRequestResponse({ description: 'Invalid data provided' })
+  createClientOrder(@Body() clientOrderDto: ClientOrderDto) {
+    this.logger.debug("creating a new order" + clientOrderDto) 
+    this.logger.debug("creating a new order for " + clientOrderDto.order.clientName) 
+    return this.ordersService.createClientOrder(clientOrderDto)
   }
 
   @Get()
