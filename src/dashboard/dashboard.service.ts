@@ -5,7 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CategoryService } from 'src/category/category.service';
 import { FoodmenuService } from 'src/foodmenu/foodmenu.service';
 import { OrdersService } from 'src/orders/orders.service';
-import { DashBoardStats } from 'src/types/stats.type'
+import { DashBoardStats } from 'src/types/stats.type';
 
 @Injectable()
 export class DashboardService {
@@ -23,27 +23,48 @@ export class DashboardService {
   }
 
   async findAll() {
-    this.logger.log('Getting all the stats from the database')
+    this.logger.log('Getting all the stats from the database');
     //categories
-    const allCategories = await this.categoryService.findTotalCategories()
+    const allCategories = await this.categoryService.findTotalCategories();
     //orders
-    const allOrders = await this.orderService.findTotalOrders()
-    const totalOrdersForToday = await this.orderService.getTotalOrderToday()
-    this.logger.log('Calculating the total sales for today')
-    const totalTodaySales = totalOrdersForToday.reduce((sum, item) => sum + item.totalAmount, 0);
-
+    const allOrders = await this.orderService.findTotalOrders();
+    const totalOrdersForToday = await this.orderService.getTotalOrderToday();
+    this.logger.log('Calculating the total sales for today');
+    const totalTodaySales = totalOrdersForToday.reduce(
+      (sum, item) => sum + item.totalAmount,
+      0,
+    );
+    this.logger.log('Calculating the total sales for previous month');
+    const totalOrdersPreviousMonth =
+      await this.orderService.getTotalOrdersPreviousMonth();
+    const totalSalesPreviousMonth = totalOrdersPreviousMonth.reduce(
+      (sum, item) => sum + item.totalAmount,
+      0,
+    );
+    this.logger.log('Calculating the total sales for yesterday');
+    const totalOrdersYesterday =
+      await this.orderService.getTotalOrderYesterday();
+    const totalSalesYesterday = totalOrdersYesterday.reduce(
+      (sum, item) => sum + item.totalAmount,
+      0,
+    );
     //foodmenu
-    this.logger.log('Gettng the total menu')
-    const totalFoodMenu =  await this.foodMenuService.findTotalFoodMenu()
-
+    this.logger.log('Gettng the total menu');
+    const totalFoodMenu = await this.foodMenuService.findTotalFoodMenu();
 
     return {
-      'totalCategory' : allCategories,
-      'totalorder':allOrders,
-      'totalOrdersForToday':totalOrdersForToday.length,
-      'totalTodaySales':`${totalTodaySales} cedis`,
-      'totalFoodMenu':totalFoodMenu
-    }
+      totalCategory: allCategories,
+      totalorder: allOrders,
+      totalOrdersForToday: totalOrdersForToday.length,
+      totalOrdersPreviousMonth: totalOrdersPreviousMonth.length,
+      totalSalesPreviousMonth: totalSalesPreviousMonth,
+      totalOrdersYesterday: totalOrdersYesterday.length,
+      totalSalesYesterday: totalSalesYesterday,
+      totalOrdersthisMonth: 'N/A',
+      totalSalesthisMonth: 'NA',
+      totalTodaySales: totalTodaySales,
+      totalFoodMenu: totalFoodMenu,
+    };
   }
 
   findOne(id: number) {
@@ -57,19 +78,12 @@ export class DashboardService {
   remove(id: number) {
     return `This action removes a #${id} dashboard`;
   }
-  
- 
-  async getTotalOrders(){
+
+  async getTotalOrders() {
     return this.orderService.findAll.length;
   }
-  async getTodayOrders(){
+  async getTodayOrders() {
     return this.orderService.getTotalOrderToday.length;
-
   }
-  async getSalesForPreviousMonth(){
-
-  }
-  
-
-
+  async getSalesForPreviousMonth() {}
 }

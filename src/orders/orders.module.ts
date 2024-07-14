@@ -5,6 +5,6 @@ import { OrderGateway } from './order.gateway';
 
 @Module({
   controllers: [OrdersController],
-  providers: [OrdersService,OrderGateway],
+  providers: [OrdersService, OrderGateway],
 })
 export class OrdersModule {}

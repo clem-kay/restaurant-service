@@ -37,7 +37,9 @@ export class ReservationController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ description: 'List of reservations retrieved successfully.' })
+  @ApiOkResponse({
+    description: 'List of reservations retrieved successfully.',
+  })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
   @ApiForbiddenResponse({ description: 'Unauthorized Request' })
   findAll() {
@@ -60,7 +62,10 @@ export class ReservationController {
   @ApiNotFoundResponse({ description: 'Reservation not found.' })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
   @ApiForbiddenResponse({ description: 'Unauthorized Request' })
-  update(@Param('id') id: string, @Body() updateReservationDto: UpdateReservationDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateReservationDto: UpdateReservationDto,
+  ) {
     return this.reservationService.update(+id, updateReservationDto);
   }
 

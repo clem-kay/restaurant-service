@@ -27,7 +27,10 @@ export class UseraccountService {
       this.logger.log(`Successfully activated user account with ID: ${id}`);
       return result;
     } catch (error) {
-      this.logger.error(`Failed to activate user account with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to activate user account with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -41,7 +44,10 @@ export class UseraccountService {
       this.logger.log(`Successfully fetched user account with ID: ${id}`);
       return userAccount;
     } catch (error) {
-      this.logger.error(`Failed to fetch user account with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to fetch user account with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -62,7 +68,10 @@ export class UseraccountService {
       });
       this.logger.log(`Successfully logged out user with ID: ${userId}`);
     } catch (error) {
-      this.logger.error(`Failed to log out user with ID: ${userId}`, error.stack);
+      this.logger.error(
+        `Failed to log out user with ID: ${userId}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -78,7 +87,7 @@ export class UseraccountService {
         },
       });
       this.logger.log('Successfully created a new user account');
-      return { user: userCreated, message: "success" };
+      return { user: userCreated, message: 'success' };
     } catch (error) {
       this.logger.error('Failed to create a new user account', error.stack);
       throw error;
@@ -91,10 +100,15 @@ export class UseraccountService {
       const userAccount = await this.prisma.userAccount.findUnique({
         where: { username },
       });
-      this.logger.log(`Successfully fetched user account with username: ${username}`);
+      this.logger.log(
+        `Successfully fetched user account with username: ${username}`,
+      );
       return userAccount;
     } catch (error) {
-      this.logger.error(`Failed to fetch user account with username: ${username}`, error.stack);
+      this.logger.error(
+        `Failed to fetch user account with username: ${username}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -123,7 +137,10 @@ export class UseraccountService {
       this.logger.log(`Successfully updated user account with ID: ${id}`);
       return updatedUserAccount;
     } catch (error) {
-      this.logger.error(`Failed to update user account with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to update user account with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -137,13 +154,18 @@ export class UseraccountService {
       this.logger.log(`Successfully removed user account with ID: ${id}`);
       return result;
     } catch (error) {
-      this.logger.error(`Failed to remove user account with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to remove user account with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
   async updateRTHash(id: number, rt: string) {
-    this.logger.log(`Updating refresh token hash for user account with ID: ${id}`);
+    this.logger.log(
+      `Updating refresh token hash for user account with ID: ${id}`,
+    );
     try {
       const hash = await hashPassword(rt);
       await this.prisma.userAccount.update({
@@ -152,15 +174,22 @@ export class UseraccountService {
           hashedRT: hash,
         },
       });
-      this.logger.log(`Successfully updated refresh token hash for user account with ID: ${id}`);
+      this.logger.log(
+        `Successfully updated refresh token hash for user account with ID: ${id}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to update refresh token hash for user account with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to update refresh token hash for user account with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
   async changePassword(changePasswordDTO: ChangePasswordDTO) {
-    this.logger.log(`Changing password for user with username: ${changePasswordDTO.username}`);
+    this.logger.log(
+      `Changing password for user with username: ${changePasswordDTO.username}`,
+    );
     try {
       const user = await this.findOneByUsername(changePasswordDTO.username);
       if (!user) throw new ForbiddenException('Invalid Username');
@@ -185,11 +214,16 @@ export class UseraccountService {
       if (!changedPassword) {
         throw new UnprocessableEntityException('Unable to change password');
       } else {
-        this.logger.log(`Successfully changed password for user with username: ${changePasswordDTO.username}`);
+        this.logger.log(
+          `Successfully changed password for user with username: ${changePasswordDTO.username}`,
+        );
         return { message: 'success' };
       }
     } catch (error) {
-      this.logger.error(`Failed to change password for user with username: ${changePasswordDTO.username}`, error.stack);
+      this.logger.error(
+        `Failed to change password for user with username: ${changePasswordDTO.username}`,
+        error.stack,
+      );
       throw error;
     }
   }

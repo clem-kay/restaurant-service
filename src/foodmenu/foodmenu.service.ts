@@ -46,8 +46,13 @@ export class FoodmenuService {
       this.logger.log(`Successfully fetched menu item with ID: ${id}`);
       return foodMenuItem;
     } catch (error) {
-      this.logger.error(`Failed to fetch menu item with ID: ${id}`, error.stack);
-      throw new NotFoundException(`Failed to fetch menu item with ID: ${id} not found`);
+      this.logger.error(
+        `Failed to fetch menu item with ID: ${id}`,
+        error.stack,
+      );
+      throw new NotFoundException(
+        `Failed to fetch menu item with ID: ${id} not found`,
+      );
     }
   }
 
@@ -61,7 +66,10 @@ export class FoodmenuService {
       this.logger.log(`Successfully updated food menu item with ID: ${id}`);
       return updatedFoodMenuItem;
     } catch (error) {
-      this.logger.error(`Failed to update food menu item with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to update food menu item with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -75,7 +83,10 @@ export class FoodmenuService {
       this.logger.log(`Successfully deleted food menu item with ID: ${id}`);
       return deletedFoodMenuItem;
     } catch (error) {
-      this.logger.error(`Failed to delete food menu item with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to delete food menu item with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -89,18 +100,25 @@ export class FoodmenuService {
           category: true,
         },
       });
-      this.logger.log(`Successfully fetched food menu items by category ID: ${categoryId}`);
+      this.logger.log(
+        `Successfully fetched food menu items by category ID: ${categoryId}`,
+      );
       return foodMenuItems;
     } catch (error) {
-      this.logger.error(`Failed to fetch food menu items by category ID: ${categoryId}`, error.stack);
+      this.logger.error(
+        `Failed to fetch food menu items by category ID: ${categoryId}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
-  async findTotalFoodMenu(){
-    this.logger.log('Getting all the foodmenu from the database')
-    const totalFoodMenu = await this.prisma.foodMenu.count()
-    this.logger.log(`Successfully fetched totalfood menu items ${totalFoodMenu}`);
-    return totalFoodMenu
+  async findTotalFoodMenu() {
+    this.logger.log('Getting all the foodmenu from the database');
+    const totalFoodMenu = await this.prisma.foodMenu.count();
+    this.logger.log(
+      `Successfully fetched totalfood menu items ${totalFoodMenu}`,
+    );
+    return totalFoodMenu;
   }
 }

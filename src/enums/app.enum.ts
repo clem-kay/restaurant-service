@@ -7,8 +7,7 @@ export enum OrderStatus {
 }
 
 export enum PickUp_Status {
-    PICKUP = 'PICKUP',
-    DELIVERY = 'DELIVERY',
-    DINEIN = 'DINEIN',
-  
-  }
+  PICKUP = 'PICKUP',
+  DELIVERY = 'DELIVERY',
+  DINEIN = 'DINEIN',
+}

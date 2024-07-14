@@ -1,12 +1,19 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, Min } from 'class-validator';
-import { ApiProperty } from "@nestjs/swagger";
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  Min,
+} from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateFoodmenuDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
     type: String,
-    description: 'This is a required property, should be the name of the food you wish to add',
+    description:
+      'This is a required property, should be the name of the food you wish to add',
   })
   name: string;
 
@@ -30,7 +37,8 @@ export class CreateFoodmenuDto {
   @IsOptional()
   @ApiProperty({
     type: String,
-    description: 'This is an optional property, should be the image URL. You can decide to upload the image somewhere or hit our image upload endpoint to get the URL',
+    description:
+      'This is an optional property, should be the image URL. You can decide to upload the image somewhere or hit our image upload endpoint to get the URL',
   })
   imageUrl: string;
 
@@ -38,21 +46,24 @@ export class CreateFoodmenuDto {
   @IsOptional()
   @ApiProperty({
     type: String,
-    description: 'This is an optional property, should provide some description of the food',
+    description:
+      'This is an optional property, should provide some description of the food',
   })
   description: string;
 
   @IsNotEmpty()
   @ApiProperty({
     type: Number,
-    description: 'This is a required property, should be the ID of the user creating or updating the menu item',
+    description:
+      'This is a required property, should be the ID of the user creating or updating the menu item',
   })
-  userAccountId: number; 
+  userAccountId: number;
 
   @IsNotEmpty()
   @ApiProperty({
     type: Number,
-    description: 'This is a required property, should be the ID of the food category the food belongs to',
+    description:
+      'This is a required property, should be the ID of the food category the food belongs to',
   })
-  categoryId: number; 
+  categoryId: number;
 }

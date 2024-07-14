@@ -20,7 +20,7 @@ import {
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { ClientOrderDto } from './dto/client-order.dto'
+import { ClientOrderDto } from './dto/client-order.dto';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -37,20 +37,20 @@ export class OrdersController {
     return this.ordersService.getTotalOrderToday();
   }
 
-  @Get('/previous')
-  @ApiOperation({ summary: 'Get previous total orders' })
-  @ApiOkResponse({ description: 'Returns total orders placed previously' })
-  getPreviousTotalOrder() {
-    return this.ordersService.getTotalOrderPrevious();
-  }
+  // @Get('/previous')
+  // @ApiOperation({ summary: 'Get previous total orders' })
+  // @ApiOkResponse({ description: 'Returns total orders placed previously' })
+  // getPreviousTotalOrder() {
+  //   return this.ordersService.getTotalOrderPrevious();
+  // }
 
   @Post()
   @ApiOperation({ summary: 'Create a new order' })
   @ApiOkResponse({ description: 'The order has been successfully created' })
   @ApiBadRequestResponse({ description: 'Invalid data provided' })
   create(@Body() createOrderDto: CreateOrderDto) {
-    this.logger.debug("creating a new order" + createOrderDto) 
-    this.logger.debug("creating a new order for " + createOrderDto.order.name) 
+    this.logger.debug('creating a new order' + createOrderDto);
+    this.logger.debug('creating a new order for ' + createOrderDto.order.name);
     return this.ordersService.create(createOrderDto);
   }
 
@@ -59,16 +59,18 @@ export class OrdersController {
   @ApiOkResponse({ description: 'The order has been successfully created' })
   @ApiBadRequestResponse({ description: 'Invalid data provided' })
   createClientOrder(@Body() clientOrderDto: ClientOrderDto) {
-    this.logger.debug("creating a new order" + clientOrderDto) 
-    this.logger.debug("creating a new order for " + clientOrderDto.order.clientName) 
-    return this.ordersService.createClientOrder(clientOrderDto)
+    this.logger.debug('creating a new order' + clientOrderDto);
+    this.logger.debug(
+      'creating a new order for ' + clientOrderDto.order.clientName,
+    );
+    return this.ordersService.createClientOrder(clientOrderDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all orders' })
   @ApiOkResponse({ description: 'Returns a list of all orders' })
   findAll() {
-    this.logger.debug("Fetching all orders")
+    this.logger.debug('Fetching all orders');
     return this.ordersService.findAll();
   }
 
@@ -78,7 +80,7 @@ export class OrdersController {
   @ApiNotFoundResponse({ description: 'Order with the provided ID not found' })
   @ApiParam({ name: 'id', type: 'string', description: 'Order ID' })
   findOne(@Param('id') id: string) {
-    this.logger.debug("Fetching a single order" + id) 
+    this.logger.debug('Fetching a single order' + id);
     return this.ordersService.findOne(+id);
   }
 
@@ -88,7 +90,7 @@ export class OrdersController {
   @ApiBadRequestResponse({ description: 'Invalid data provided' })
   @ApiParam({ name: 'id', type: 'string', description: 'Order ID' })
   update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
-    this.logger.debug("creating a new order" + updateOrderDto)
+    this.logger.debug('creating a new order' + updateOrderDto);
     return this.ordersService.update(+id, updateOrderDto);
   }
 
@@ -103,7 +105,9 @@ export class OrdersController {
 
   @Put('/update-status/:id')
   @ApiOperation({ summary: 'Update order status by ID' })
-  @ApiOkResponse({ description: 'The order status has been successfully updated' })
+  @ApiOkResponse({
+    description: 'The order status has been successfully updated',
+  })
   @ApiBadRequestResponse({ description: 'Invalid data provided' })
   @ApiParam({ name: 'id', type: 'string', description: 'Order ID' })
   updateStatus(
@@ -115,7 +119,9 @@ export class OrdersController {
 
   @Put('/update-payment/:id')
   @ApiOperation({ summary: 'Update order payment status by ID' })
-  @ApiOkResponse({ description: 'The order payment status has been successfully updated' })
+  @ApiOkResponse({
+    description: 'The order payment status has been successfully updated',
+  })
   @ApiBadRequestResponse({ description: 'Invalid data provided' })
   @ApiParam({ name: 'id', type: 'string', description: 'Order ID' })
   updatePayment(@Param('id') id: string, @Body() body: { status: boolean }) {

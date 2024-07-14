@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsInt, IsOptional, IsString, IsUrl, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUrl,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { PickUp_Status } from 'src/enums/app.enum';
 
@@ -106,7 +113,8 @@ export class ClientOrder {
   @ApiProperty({
     example: 'Jake Koomson',
     type: String,
-    description: 'This is a required property, the name of the person ordering the food',
+    description:
+      'This is a required property, the name of the person ordering the food',
   })
   @IsString()
   clientName: string;
@@ -139,11 +147,10 @@ export class ClientOrderDto {
   orderItems: ClientOrderItemDto[];
 
   @ApiProperty({
-    type: ClientOrderDto,
+    type: ClientOrder,
     description: 'Details of the order',
   })
   @ValidateNested()
   @Type(() => ClientOrder)
   order: ClientOrder;
 }
-

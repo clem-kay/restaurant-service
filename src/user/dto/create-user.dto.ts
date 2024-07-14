@@ -1,4 +1,3 @@
-
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 enum Role {
@@ -6,7 +5,4 @@ enum Role {
   ADMIN = 'ADMIN',
 }
 
-export class CreateUserDto {
-
-}
-
+export class CreateUserDto {}

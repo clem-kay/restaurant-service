@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { CreateOrderDto, OrderItemDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -14,7 +14,20 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private orderGateway: OrderGateway,
   ) {}
+  async getTotalOrdersPreviousMonth() {
+    this.logger.log('Fetching total orders for previous month');
+    // Get the current date
+    const now = new Date();
 
+    // Calculate the start and end dates for the previous month
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    console.log(`Fetching records from ${startOfMonth} to ${endOfMonth}`);
+
+    // Query the database
+    return this.getDataBetweenDates(startOfMonth, endOfMonth);
+  }
   async getTotalOrderToday() {
     this.logger.log('Fetching total orders for today');
     const today = new Date(); // Get the current date
@@ -31,24 +44,30 @@ export class OrdersService {
       today.getDate() + 1,
     );
 
+    return this.getDataBetweenDates(startOfToday, endOfToday);
+  }
+  async getDataBetweenDates(start: Date, end: Date) {
     try {
       const data = await this.prisma.order.findMany({
         where: {
           createdAt: {
-            gte: startOfToday,
-            lt: endOfToday,
+            gte: start,
+            lt: end,
           },
         },
       });
-      this.logger.log('Successfully fetched total orders for today');
+      this.logger.log(
+        `Successfully fetched total orders between ${start} and ${end}`,
+      );
+      this.logger.log(`Successfully fetched total orders ${data}`);
       return data;
     } catch (error) {
       this.logger.error('Failed to fetch total orders for today', error.stack);
-      throw error;
+      throw new ForbiddenException('Error occured retriving data');
     }
   }
 
-  async getTotalOrderPrevious() {
+  async getTotalOrderYesterday() {
     this.logger.log('Fetching total orders for yesterday');
     const today = new Date();
     const startOfToday = new Date(today.setHours(0, 0, 0, 0));
@@ -57,56 +76,49 @@ export class OrdersService {
     const endOfYesterday = new Date(startOfYesterday);
     endOfYesterday.setHours(23, 59, 59, 999);
 
-    try {
-      const data = await this.prisma.order.findMany({
-        where: {
-          createdAt: {
-            gte: startOfYesterday,
-            lt: startOfToday,
-          },
-        },
-      });
-      this.logger.log('Successfully fetched total orders for yesterday');
-      return data;
-    } catch (error) {
-      this.logger.error('Failed to fetch total orders for yesterday', error.stack);
-      throw error;
-    }
+    return this.getDataBetweenDates(startOfYesterday, startOfToday);
   }
 
   createClientOrder(clientOrderDto: ClientOrderDto) {
-    this.logger.log("Since the client side data is different we transform it to suit what we use at the backend")
-    this.logger.log("and save what we want ")
-    const transformedOrderItems = clientOrderDto.orderItems.map(item => ({
+    this.logger.log(
+      'Since the client side data is different we transform it to suit what we use at the backend',
+    );
+    this.logger.log('and save what we want ');
+    const transformedOrderItems = clientOrderDto.orderItems.map((item) => ({
       quantity: item.quantity,
       price: item.price,
       foodMenuId: item.id,
     }));
 
-    const pickup = clientOrderDto.order.pickup_status ? clientOrderDto.order.pickup_status : PickUp_Status.DELIVERY;
-  
+    const pickup = clientOrderDto.order.pickup_status
+      ? clientOrderDto.order.pickup_status
+      : PickUp_Status.DELIVERY;
+
     const transformedOrder = {
       food_status: OrderStatus.PENDING,
       totalAmount: undefined,
       name: clientOrderDto.order.clientName,
-      number: clientOrderDto.order.phone.toString(), 
+      number: clientOrderDto.order.phone.toString(),
       location: clientOrderDto.order.clientAddress,
-      other_info: '', 
-      pickup_status: pickup
+      other_info: '',
+      pickup_status: pickup,
     };
-    
-     const order = {
+
+    const order = {
       order: transformedOrder,
       orderItems: transformedOrderItems,
     };
 
-    return this.create(order)
+    return this.create(order);
   }
 
   async create(createOrderDto: CreateOrderDto) {
     const { order, orderItems } = createOrderDto;
-    const totalAmount = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-    console.log(order)
+    const totalAmount = orderItems.reduce(
+      (sum, item) => sum + item.quantity * item.price,
+      0,
+    );
+    console.log(order);
     try {
       const createdOrder = await this.prisma.order.create({
         data: {
@@ -149,7 +161,7 @@ export class OrdersService {
           orderItems: true, // Include orderItems to count them
         },
       });
-      
+
       const ordersWithFoodCount = orders.map((order) => ({
         id: order.id,
         createdAt: order.createdAt,
@@ -214,9 +226,13 @@ export class OrdersService {
         });
 
         this.logger.log(`Successfully deleted order with ID: ${id}`);
-        return { message: `Order with ID: ${id} has been successfully deleted.` };
+        return {
+          message: `Order with ID: ${id} has been successfully deleted.`,
+        };
       } else {
-        this.logger.warn(`Order with ID: ${id} is being prepared and cannot be deleted`);
+        this.logger.warn(
+          `Order with ID: ${id} is being prepared and cannot be deleted`,
+        );
         return { message: 'Order is being prepared cannot be deleted' };
       }
     } catch (error) {
@@ -226,7 +242,9 @@ export class OrdersService {
   }
 
   async updateFoodStatus(id: number, body: { status: string; userId: number }) {
-    this.logger.log(`Updating food status for order with ID: ${id} to ${body.status}`);
+    this.logger.log(
+      `Updating food status for order with ID: ${id} to ${body.status}`,
+    );
     try {
       const updatedOrder = await this.prisma.order.update({
         where: { id },
@@ -240,16 +258,23 @@ export class OrdersService {
           },
         },
       });
-      this.logger.log(`Successfully updated food status for order with ID: ${id}`);
+      this.logger.log(
+        `Successfully updated food status for order with ID: ${id}`,
+      );
       return updatedOrder;
     } catch (error) {
-      this.logger.error(`Failed to update food status for order with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to update food status for order with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
   async updatePayment(id: number, status: boolean) {
-    this.logger.log(`Updating payment status for order with ID: ${id} to ${status}`);
+    this.logger.log(
+      `Updating payment status for order with ID: ${id} to ${status}`,
+    );
     try {
       const updatedOrder = await this.prisma.order.update({
         where: { id },
@@ -257,16 +282,21 @@ export class OrdersService {
           paid: status,
         },
       });
-      this.logger.log(`Successfully updated payment status for order with ID: ${id}`);
+      this.logger.log(
+        `Successfully updated payment status for order with ID: ${id}`,
+      );
       return updatedOrder;
     } catch (error) {
-      this.logger.error(`Failed to update payment status for order with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to update payment status for order with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
-  async findTotalOrders(){
-    this.logger.log('Getting all the orders from the database')
-    return await this.prisma.order.count()
+  async findTotalOrders() {
+    this.logger.log('Getting all the orders from the database');
+    return await this.prisma.order.count();
   }
 }

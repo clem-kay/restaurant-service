@@ -76,13 +76,13 @@ export class UseraccountController {
     return this.useraccountService.remove(+id);
   }
 
-  @Put("/activate/:id")
+  @Put('/activate/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: 'User activated/deactivated successfully' })
   @ApiUnprocessableEntityResponse({ description: 'Invalid data provided' })
   @ApiForbiddenResponse({ description: 'Unauthorized request' })
-  async activate(@Param('id') id:number, @Body() body: {isActive: boolean}){
-    return this.useraccountService.activate(id,body);
+  async activate(@Param('id') id: number, @Body() body: { isActive: boolean }) {
+    return this.useraccountService.activate(id, body);
   }
 
   @Post('change-password')

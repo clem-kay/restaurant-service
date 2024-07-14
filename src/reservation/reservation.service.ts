@@ -47,7 +47,10 @@ export class ReservationService {
       this.logger.log(`Successfully fetched reservation with ID: ${id}`);
       return reservation;
     } catch (error) {
-      this.logger.error(`Failed to fetch reservation with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to fetch reservation with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -62,7 +65,10 @@ export class ReservationService {
       this.logger.log(`Successfully updated reservation with ID: ${id}`);
       return reservation;
     } catch (error) {
-      this.logger.error(`Failed to update reservation with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to update reservation with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -76,7 +82,10 @@ export class ReservationService {
       this.logger.log(`Successfully deleted reservation with ID: ${id}`);
       return reservation;
     } catch (error) {
-      this.logger.error(`Failed to delete reservation with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to delete reservation with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }

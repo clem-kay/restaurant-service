@@ -70,7 +70,10 @@ export class CategoryService {
       this.logger.log(`Successfully updated category with ID: ${id}`);
       return updatedCategory;
     } catch (error) {
-      this.logger.error(`Failed to update category with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to update category with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -92,19 +95,21 @@ export class CategoryService {
 
       if (deleted) {
         this.logger.log(`Successfully deleted category with ID: ${id}`);
-        return { message: "success" };
+        return { message: 'success' };
       } else {
         this.logger.warn(`Unable to delete category with ID: ${id}`);
-        return { message: "unable to delete category" };
+        return { message: 'unable to delete category' };
       }
     } catch (error) {
-      this.logger.error(`Failed to delete category with ID: ${id}`, error.stack);
+      this.logger.error(
+        `Failed to delete category with ID: ${id}`,
+        error.stack,
+      );
       throw error;
     }
   }
-  async findTotalCategories(){
-    this.logger.log('Getting the total categories')
-    return await this.prisma.foodCategory.count()
-    
+  async findTotalCategories() {
+    this.logger.log('Getting the total categories');
+    return await this.prisma.foodCategory.count();
   }
 }

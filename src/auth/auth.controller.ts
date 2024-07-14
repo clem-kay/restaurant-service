@@ -32,8 +32,8 @@ export class AuthController {
   @ApiForbiddenResponse({ description: 'Unauthorized Request' })
   async login(@Body() loginDto: LoginDto) {
     const res = await this.authService.login(loginDto);
-   console.log(res)
-    return res
+    console.log(res);
+    return res;
   }
   @UseGuards(AuthGuard('jwt'))
   @Post('logout')

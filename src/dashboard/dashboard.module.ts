@@ -8,6 +8,12 @@ import { OrderGateway } from 'src/orders/order.gateway';
 
 @Module({
   controllers: [DashboardController],
-  providers: [DashboardService,CategoryService,FoodmenuService,OrdersService,OrderGateway],
+  providers: [
+    DashboardService,
+    CategoryService,
+    FoodmenuService,
+    OrdersService,
+    OrderGateway,
+  ],
 })
 export class DashboardModule {}

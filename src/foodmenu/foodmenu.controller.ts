@@ -78,7 +78,9 @@ export class FoodmenuController {
 
   @Get('get-by-category/:id')
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ description: 'Food menu by category retrieved successfully.' })
+  @ApiOkResponse({
+    description: 'Food menu by category retrieved successfully.',
+  })
   @ApiNotFoundResponse({ description: 'Category not found.' })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
   @ApiForbiddenResponse({ description: 'Unauthorized Request' })

@@ -18,7 +18,8 @@ export class CreateUseraccountDto {
   @IsNotEmpty()
   @ApiProperty({
     type: String,
-    description: 'This is a required property, should be a default password an admin set for the user',
+    description:
+      'This is a required property, should be a default password an admin set for the user',
   })
   readonly password: string;
 
