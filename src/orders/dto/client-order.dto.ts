@@ -128,6 +128,14 @@ export class ClientOrder {
   phone: number;
 
   @ApiProperty({
+    example: 'ck@gmail.com',
+    type: String,
+    description: 'Client Email',
+  })
+  @IsString()
+  email: string;
+
+  @ApiProperty({
     type: String,
     description: 'This is a required property',
     enum: PickUp_Status,

@@ -86,6 +86,7 @@ model Order {
   statusHistory OrderStatusHistory[] // Relation to OrderStatusHistory
   comment       String?
   paid          Boolean              @default(false)
+  email         String?
 
   @@map("Order")
 }

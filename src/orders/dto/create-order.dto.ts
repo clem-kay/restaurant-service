@@ -64,6 +64,14 @@ export class OrderDto {
   })
   readonly location: string;
 
+  @ApiProperty({
+    example: 'ck@gmail.com',
+    type: String,
+    description: 'Client Email',
+  })
+  @IsString()
+  email: string;
+
   @IsOptional()
   @IsString()
   @ApiProperty({

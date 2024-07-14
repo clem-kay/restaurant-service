@@ -102,6 +102,7 @@ export class OrdersService {
       location: clientOrderDto.order.clientAddress,
       other_info: '',
       pickup_status: pickup,
+      email: clientOrderDto.order.email
     };
 
     const order = {
@@ -176,6 +177,7 @@ export class OrdersService {
         comment: order.comment,
         paid: order.paid,
         totalFoodItems: order.orderItems.length,
+        email: order.email
       }));
 
       this.logger.log('Successfully fetched all orders');
