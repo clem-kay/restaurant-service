@@ -138,3 +138,11 @@ model FoodCategory {
 
   @@map("FoodCategory")
 }
+
+model OrderSessionId{
+  id          Int        @id @default(autoincrement())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  orderId     Int
+  sessionId   String
+}

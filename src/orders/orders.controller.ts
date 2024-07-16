@@ -8,6 +8,8 @@ import {
   Delete,
   Put,
   Logger,
+  Redirect,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -126,5 +128,16 @@ export class OrdersController {
   @ApiParam({ name: 'id', type: 'string', description: 'Order ID' })
   updatePayment(@Param('id') id: string, @Body() body: { status: boolean }) {
     return this.ordersService.updatePayment(+id, body.status);
+  }
+  @Get('pay/success/checkout/session')
+  @Redirect()
+  async handleCheckoutSessionSuccess(@Query('session_id') sessionId: string) {
+    return await this.ordersService.handleCheckoutSessionSuccess(sessionId);
+  }
+
+  @Get('pay/failed/checkout/session')
+  @Redirect()
+  async handleCheckoutSessionFailure(@Query('session_id') sessionId: string){
+    return await this.ordersService.handleCheckoutSessionSuccess(sessionId);
   }
 }
