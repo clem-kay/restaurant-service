@@ -10,7 +10,6 @@ import { FoodmenuModule } from './foodmenu/foodmenu.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { OrdersModule } from './orders/orders.module';
-import { OrderGateway } from './orders/order.gateway';
 import { ReservationModule } from './reservation/reservation.module';
 import { CategoryModule } from './category/category.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -36,7 +35,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     DashboardModule,
   ],
   controllers: [AppController],
-  providers: [AppService, PrismaService, OrderGateway],
+  providers: [AppService, PrismaService],
   exports:[ConfigModule]
 })
 export class AppModule {}

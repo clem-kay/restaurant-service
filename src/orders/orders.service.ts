@@ -2,7 +2,6 @@ import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { CreateOrderDto, OrderItemDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { OrderGateway } from './order.gateway';
 import { ClientOrderDto } from './dto/client-order.dto';
 import { OrderStatus, PickUp_Status } from 'src/enums/app.enum';
 import Stripe from 'stripe';
@@ -14,7 +13,6 @@ export class OrdersService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private orderGateway: OrderGateway,
   ) {}
 
   async getTotalOrdersPreviousMonth() {
