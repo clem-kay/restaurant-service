@@ -1,9 +1,10 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { CreateOrderDto, OrderItemDto } from './dto/create-order.dto';
+import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ClientOrderDto } from './dto/client-order.dto';
 import { OrderStatus, PickUp_Status } from 'src/enums/app.enum';
+import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class OrdersService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly configService:ConfigService
   ) {}
 
   async getTotalOrdersPreviousMonth() {
@@ -83,8 +85,8 @@ export class OrdersService {
           setup_future_usage: 'on_session',
         },
         customer_email: clientOrderDto.order.email,
-        success_url: `${process.env.APPURL}/api/v1/orders/pay/success/checkout/session?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.APPURL}/api/v1/orders/pay/failed/checkout/session?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${this.configService.get<string>('APPURL')}/api/v1/orders/pay/success/checkout/session?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${this.configService.get<string>('APPURL')}/api/v1/orders/pay/failed/checkout/session?session_id={CHECKOUT_SESSION_ID}`,
       });
 
       this.logger.log('Transforming client data to backend format');
@@ -318,14 +320,14 @@ export class OrdersService {
     try {
       const sessionOrderId = await this.prisma.orderSessionId.findFirst({
         where: { sessionId },
+        select: { orderId: true, id: true }, // Select only the fields you need
       });
-      const updatedOrder = await this.updatePayment(sessionOrderId.orderId, true);
-      if (updatedOrder) {
-        await this.prisma.orderSessionId.delete({
-          where: { id: sessionOrderId.id },
-        });
-        this.logger.log(`Successfully handled checkout session success for session ID: ${sessionId}`);
-        return { message: 'success', error: '' };
+
+      if (sessionOrderId) {
+        const updatedOrder = await this.updatePayment(sessionOrderId.orderId, true);
+        if (updatedOrder) {
+          return { message: 'success', error: '' };
+        }
       }
     } catch (error) {
       this.logger.error('Failed to handle checkout session success', error.stack);
@@ -338,15 +340,19 @@ export class OrdersService {
     try {
       const sessionOrderId = await this.prisma.orderSessionId.findFirst({
         where: { sessionId },
+        select: { orderId: true, id: true },
       });
-      const updatedOrder = await this.updatePayment(sessionOrderId.orderId, false);
-      const updatedFoodStatus = await this.updateFoodStatus(sessionOrderId.orderId, { status: 'CANCELLED', userId: null });
-      if (updatedOrder && updatedFoodStatus) {
-        await this.prisma.orderSessionId.delete({
-          where: { id: sessionOrderId.id },
-        });
-        this.logger.log(`Successfully handled checkout session failure for session ID: ${sessionId}`);
-        return { message: 'success', error: '' };
+
+      if (sessionOrderId) {
+        const updatedOrder = await this.updatePayment(sessionOrderId.orderId, false);
+        const updatedFoodStatus = await this.updateFoodStatus(sessionOrderId.orderId, { status: 'CANCELLED', userId: null });
+        if (updatedOrder && updatedFoodStatus) {
+          await this.prisma.orderSessionId.delete({
+            where: { id: sessionOrderId.id },
+          });
+          this.logger.log(`Successfully handled checkout session failure for session ID: ${sessionId}`);
+          return { message: 'success', error: '' };
+        }
       }
     } catch (error) {
       this.logger.error('Failed to handle checkout session failure', error.stack);
