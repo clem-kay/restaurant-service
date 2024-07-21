@@ -7,8 +7,6 @@ import { ClientOrderDto } from './dto/client-order.dto';
 import { OrderStatus, PickUp_Status } from 'src/enums/app.enum';
 import Stripe from 'stripe';
 
-// const stripe = require('stripe')("sk_test_51GsPXxEEFt2aMR7AkXjU3qzvGFHU3DOKLF13LKVxBEDsPnGFpQkVXiXu4rutrb6jWndLSExCzYLtUIiIW6GFG4pc00nheuijea")
-
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
@@ -127,8 +125,9 @@ export class OrdersService {
       const createdSessionId = await this.prisma.orderSessionId.create({
         data: sessionToBeStored,
       });
-
-      return session.url;
+      const res ={ id: session.id } 
+      this.logger.log(`Sending this session ID for the order to the frontend: ${JSON.stringify(res)}`);
+      return res;
 
     } catch (error) {
       this.logger.error('Failed to create a new order', error.stack);

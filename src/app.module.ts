@@ -14,9 +14,12 @@ import { OrderGateway } from './orders/order.gateway';
 import { ReservationModule } from './reservation/reservation.module';
 import { CategoryModule } from './category/category.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { MailerModule } from './mailer/mailer.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({isGlobal: true,}),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
       serveRoot: '/uploads',
@@ -29,8 +32,11 @@ import { DashboardModule } from './dashboard/dashboard.module';
     OrdersModule,
     ReservationModule,
     CategoryModule,
-  DashboardModule],
+    MailerModule, 
+    DashboardModule,
+  ],
   controllers: [AppController],
   providers: [AppService, PrismaService, OrderGateway],
+  exports:[ConfigModule]
 })
 export class AppModule {}

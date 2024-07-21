@@ -10,12 +10,15 @@ import { AppService } from './app.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { ConfigService } from '@nestjs/config';
 
 @Controller()
 export class AppController {
   private readonly logger = new Logger(AppController.name);
 
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+    private readonly configService:ConfigService) {}
 
   @Get()
   getHello(): string {
@@ -41,7 +44,7 @@ export class AppController {
   )
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     this.logger.log('POST request to /upload');
-    const fileUrl = `${process.env.APPURL}/uploads/${file.filename}`;
+    const fileUrl = `${this.configService.get<string>('APPURL')}/uploads/${file.filename}`;
     this.logger.log(`File uploaded successfully: ${fileUrl}`);
     return { url: fileUrl };
   }
