@@ -24,59 +24,46 @@ export class DashboardService {
 
   async findAll() {
     this.logger.log('Getting all the stats from the database');
-    //categories
-    // const allCategories = await this.categoryService.findTotalCategories();
-    // //orders
-    // const allOrders = await this.orderService.findTotalOrders();
-    // const totalOrdersForToday = await this.orderService.getTotalOrderToday();
-    // this.logger.log('Calculating the total sales for today');
-    // const totalTodaySales = totalOrdersForToday.reduce(
-    //   (sum, item) => sum + item.totalAmount,
-    //   0,
-    // );
-    // this.logger.log('Calculating the total sales for previous month');
-    // const totalOrdersPreviousMonth =
-    //   await this.orderService.getTotalOrdersPreviousMonth();
-    // const totalSalesPreviousMonth = totalOrdersPreviousMonth.reduce(
-    //   (sum, item) => sum + item.totalAmount,
-    //   0,
-    // );
-    // this.logger.log('Calculating the total sales for yesterday');
-    // const totalOrdersYesterday =
-    //   await this.orderService.getTotalOrderYesterday();
-    // const totalSalesYesterday = totalOrdersYesterday.reduce(
-    //   (sum, item) => sum + item.totalAmount,
-    //   0,
-    // );
-    // //foodmenu
-    // this.logger.log('Gettng the total menu');
-    // const totalFoodMenu = await this.foodMenuService.findTotalFoodMenu();
+    // categories
+    const allCategories = await this.categoryService.findTotalCategories();
+    //orders
+    const allOrders = await this.orderService.findTotalOrders();
+    const totalOrdersForToday = await this.orderService.getTotalOrderToday();
+    this.logger.log('Calculating the total sales for today');
+    const totalTodaySales = totalOrdersForToday.reduce(
+      (sum, item) => sum + item.totalAmount,
+      0,
+    );
+    this.logger.log('Calculating the total sales for previous month');
+    const totalOrdersPreviousMonth =
+      await this.orderService.getTotalOrdersPreviousMonth();
+    const totalSalesPreviousMonth = totalOrdersPreviousMonth.reduce(
+      (sum, item) => sum + item.totalAmount,
+      0,
+    );
+    this.logger.log('Calculating the total sales for yesterday');
+    const totalOrdersYesterday =
+      await this.orderService.getTotalOrderYesterday();
+    const totalSalesYesterday = totalOrdersYesterday.reduce(
+      (sum, item) => sum + item.totalAmount,
+      0,
+    );
+    //foodmenu
+    this.logger.log('Gettng the total menu');
+    const totalFoodMenu = await this.foodMenuService.findTotalFoodMenu();
 
-    // return {
-    //   totalCategory: allCategories,
-    //   totalorder: allOrders,
-    //   totalOrdersForToday: totalOrdersForToday.length,
-    //   totalOrdersPreviousMonth: totalOrdersPreviousMonth.length,
-    //   totalSalesPreviousMonth: totalSalesPreviousMonth,
-    //   totalOrdersYesterday: totalOrdersYesterday.length,
-    //   totalSalesYesterday: totalSalesYesterday,
-    //   totalOrdersthisMonth: 'N/A',
-    //   totalSalesthisMonth: 'NA',
-    //   totalTodaySales: totalTodaySales,
-    //   totalFoodMenu: totalFoodMenu,
-    // };
     return {
-      totalCategory: 'N/A',
-      totalorder: 'N/A',
-      totalOrdersForToday: 'N/A',
-      totalOrdersPreviousMonth: 'N/A',
-      totalSalesPreviousMonth: 'N/A',
-      totalOrdersYesterday: 'N/A',
-      totalSalesYesterday: 'N/A',
+      totalCategory: allCategories,
+      totalorder: allOrders,
+      totalOrdersForToday: totalOrdersForToday.length,
+      totalOrdersPreviousMonth: totalOrdersPreviousMonth.length,
+      totalSalesPreviousMonth: totalSalesPreviousMonth,
+      totalOrdersYesterday: totalOrdersYesterday.length,
+      totalSalesYesterday: totalSalesYesterday,
       totalOrdersthisMonth: 'N/A',
       totalSalesthisMonth: 'NA',
-      totalTodaySales: 'N/A',
-      totalFoodMenu: 'N/A',
+      totalTodaySales: totalTodaySales,
+      totalFoodMenu: totalFoodMenu,
     };
   }
 
