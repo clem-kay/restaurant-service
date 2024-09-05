@@ -5,6 +5,7 @@ enum Role {
   SUPERADMIN = 'SUPERADMIN',
   ADMIN = 'ADMIN',
   USER = 'USER',
+  SALES = 'SALES'
 }
 
 export class CreateUseraccountDto {
@@ -24,7 +25,7 @@ export class CreateUseraccountDto {
   readonly password: string;
 
   @IsEnum(Role, {
-    message: 'Role must be either SUPERADMIN, ADMIN, or USER',
+    message: 'Role must be either SUPERADMIN, ADMIN, USER, SALES',
   })
   @ApiProperty({
     type: String,

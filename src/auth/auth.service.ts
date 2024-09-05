@@ -62,6 +62,7 @@ export class AuthService {
         ...tokens,
         username: userAccount.username,
         message: 'success',
+        role: userAccount.role
       };
     } else {
       this.logger.debug(

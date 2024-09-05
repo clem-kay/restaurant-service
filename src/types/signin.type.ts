@@ -4,4 +4,5 @@ export type SignIn = {
   refresh_token: string;
   username: string;
   message: string;
+  role: string;
 };
