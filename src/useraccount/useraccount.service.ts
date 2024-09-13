@@ -87,7 +87,13 @@ export class UseraccountService {
         },
       });
       this.logger.log('Successfully created a new user account');
-      return { user: userCreated, message: 'success' };
+      const userReturn = {
+        username:userCreated.username,
+        role:userCreated.role,
+        isActive:userCreated.isActive,
+        createdAt:userCreated.createdAt
+      }
+      return { user: userReturn, message: 'success' };
     } catch (error) {
       this.logger.error('Failed to create a new user account', error.stack);
       throw error;
