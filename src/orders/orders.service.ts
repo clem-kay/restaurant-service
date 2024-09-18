@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -16,6 +16,15 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly configService:ConfigService
   ) {}
+
+  async getDatePrefix(){
+    const date = new Date();
+    const month = String(date.getMonth() + 1).padStart(2,'0');
+    const year = String(date.getFullYear()).slice(-2);
+    const formatedDate = month + year;
+
+    return formatedDate;
+  }
 
   async getTotalOrdersPreviousMonth() {
     this.logger.log('Fetching total orders for previous month');
@@ -73,7 +82,7 @@ export class OrdersService {
           product_data: {
             name: item.name,
           },
-          unit_amount: item.price,
+          unit_amount: Math.round(item.price * 100),
         },
         quantity: item.quantity,
       }));
@@ -131,7 +140,7 @@ export class OrdersService {
 
     } catch (error) {
       this.logger.error('Failed to create a new order', error.stack);
-      throw error;
+      throw new UnauthorizedException(error);
     }
   }
 
@@ -169,10 +178,13 @@ export class OrdersService {
         },
       });
       this.logger.log('Successfully created a new order');
-      return createdOrder;
+      return {
+        ...createdOrder,
+        orderNumber: `${this.getDatePrefix()} + '/' + ${createdOrder.id.toString}`
+      };
     } catch (error) {
       this.logger.error('Failed to create a new order', error.stack);
-      throw error;
+      throw new UnauthorizedException(error);
     }
   }
 
@@ -200,13 +212,14 @@ export class OrdersService {
         paid: order.paid,
         totalFoodItems: order.orderItems.length,
         email: order.email,
+        orderNumber: `${this.getDatePrefix()} + '/' + ${order.id.toString}`
       }));
 
       this.logger.log('Successfully fetched all orders');
       return ordersWithFoodCount;
     } catch (error) {
       this.logger.error('Failed to fetch all orders', error.stack);
-      throw error;
+      throw new UnauthorizedException(error);
     }
   }
 
@@ -224,10 +237,10 @@ export class OrdersService {
         },
       });
       this.logger.log(`Successfully fetched order with ID: ${id}`);
-      return order;
+      return { ...order,orderNumber: `${this.getDatePrefix()} + '/' + ${order.id.toString}`};
     } catch (error) {
       this.logger.error(`Failed to fetch order with ID: ${id}`, error.stack);
-      throw error;
+      throw new UnauthorizedException(error);
     }
   }
 
@@ -259,7 +272,7 @@ export class OrdersService {
       }
     } catch (error) {
       this.logger.error(`Failed to delete order with ID: ${id}`, error.stack);
-      throw error;
+      throw new UnauthorizedException(error);
     }
   }
 
@@ -282,7 +295,7 @@ export class OrdersService {
       return updatedOrder;
     } catch (error) {
       this.logger.error(`Failed to update food status for order with ID: ${id}`, error.stack);
-      throw error;
+      throw new UnauthorizedException(error);
     }
   }
 
@@ -299,7 +312,7 @@ export class OrdersService {
       return updatedOrder;
     } catch (error) {
       this.logger.error(`Failed to update payment status for order with ID: ${id}`, error.stack);
-      throw error;
+      throw new UnauthorizedException(error);
     }
   }
 
@@ -311,7 +324,7 @@ export class OrdersService {
       return count;
     } catch (error) {
       this.logger.error('Failed to count all orders', error.stack);
-      throw error;
+      throw new UnauthorizedException(error);
     }
   }
 
@@ -331,7 +344,7 @@ export class OrdersService {
       }
     } catch (error) {
       this.logger.error('Failed to handle checkout session success', error.stack);
-      throw error;
+      throw new UnauthorizedException(error);
     }
   }
 
@@ -356,7 +369,7 @@ export class OrdersService {
       }
     } catch (error) {
       this.logger.error('Failed to handle checkout session failure', error.stack);
-      throw error;
+      throw new UnauthorizedException(error);
     }
   }
 }
