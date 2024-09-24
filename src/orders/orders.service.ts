@@ -11,6 +11,7 @@ import Stripe from 'stripe';
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
   private stripe: Stripe = new Stripe(process.env.STRIPE);
+  private orderMap = new Map<string, CreateOrderDto>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -123,17 +124,10 @@ export class OrdersService {
         orderItems: transformedOrderItems,
       };
 
-      const createdOrder = await this.create(order);
+      // Store order in map using session ID as the key
+      this.orderMap.set(session.id, order);
+      // const createdOrder = await this.create(order);
 
-      const sessionToBeStored = {
-        orderId: createdOrder.id,
-        sessionId: session.id,
-      };
-
-      this.logger.log(`Saving session ID for the order: ${JSON.stringify(sessionToBeStored)}`);
-      const createdSessionId = await this.prisma.orderSessionId.create({
-        data: sessionToBeStored,
-      });
       const res ={ id: session.id } 
       this.logger.log(`Sending this session ID for the order to the frontend: ${JSON.stringify(res)}`);
       return res;
@@ -331,14 +325,16 @@ export class OrdersService {
   async handleCheckoutSessionSuccess(sessionId: string) {
     this.logger.log(`Handling checkout session success for session ID: ${sessionId}`);
     try {
-      const sessionOrderId = await this.prisma.orderSessionId.findFirst({
-        where: { sessionId },
-        select: { orderId: true, id: true }, // Select only the fields you need
-      });
+      this.logger.log(`Successfully updated payment status for order with ID: ${sessionId}`);
+      const order = this.orderMap.get(sessionId)
+      this.logger.log(`Successfully updated payment status for order with ${order}`);
+      order.order.paid= true
 
-      if (sessionOrderId) {
-        const updatedOrder = await this.updatePayment(sessionOrderId.orderId, true);
+      if (order) {
+        const createdOrder = await this.create(order);
+        const updatedOrder = await this.updatePayment(createdOrder.id, true);
         if (updatedOrder) {
+          this.orderMap.delete(sessionId)
           return { message: 'success', error: '' };
         }
       }

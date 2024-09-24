@@ -91,6 +91,13 @@ export class OrderDto {
     enum: PickUp_Status,
   })
   readonly pickup_status: PickUp_Status;
+  
+  @ApiProperty({
+  type: Boolean,
+  description: 'This is a required property',
+})
+  paid?: boolean;
+
 }
 
 export class OrderItemDto {
