@@ -15,7 +15,7 @@ import {
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiTags,
-  ApiUnprocessableEntityResponse,
+  ApiUnprocessableEntityResponse,ApiBody,ApiParam,ApiOperation
 } from '@nestjs/swagger';
 import { UseraccountService } from './useraccount.service';
 import { CreateUseraccountDto } from './dto/create-useraccount.dto';
@@ -89,13 +89,36 @@ export class UseraccountController {
   }
 
   @Put('/activate/:id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ description: 'User activated/deactivated successfully' })
-  @ApiUnprocessableEntityResponse({ description: 'Invalid data provided' })
-  @ApiForbiddenResponse({ description: 'Unauthorized request' })
-  async activate(@Param('id') id: number, @Body() body: { isActive: boolean }) {
-    return this.useraccountService.activate(id, body);
-  }
+@HttpCode(HttpStatus.OK)
+@ApiOperation({ summary: 'Activate or deactivate a user account' }) // Add operation summary
+@ApiOkResponse({ description: 'User activated/deactivated successfully' })
+@ApiUnprocessableEntityResponse({ description: 'Invalid data provided' })
+@ApiForbiddenResponse({ description: 'Unauthorized request' })
+@ApiParam({
+  name: 'id',
+  required: true,
+  type: Number,
+  description: 'ID of the user account to activate/deactivate'
+})
+@ApiBody({
+  schema: {
+    type: 'object',
+    properties: {
+      isActive: {
+        type: 'boolean',
+        description: 'Set to true to activate, or false to deactivate the user account',
+        example: true,
+      },
+    },
+    required: ['isActive'],
+  },
+})
+async activate(
+  @Param('id') id: number,
+  @Body() body: { isActive: boolean },
+) {
+  return this.useraccountService.activate(id, body);
+}
 
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
