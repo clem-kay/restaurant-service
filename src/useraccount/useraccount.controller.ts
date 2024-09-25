@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiForbiddenResponse,
@@ -21,6 +22,7 @@ import { CreateUseraccountDto } from './dto/create-useraccount.dto';
 import { DoesUserExist } from 'src/guards/doesUserExist.guard';
 import { UpdateUseraccountDto } from './dto/update-useraccount.dto';
 import { ChangePasswordDTO } from 'src/auth/dto/LoginDto';
+import { NotFoundError, retry } from 'rxjs';
 
 @ApiTags('UserAccount')
 @Controller('useraccount')
@@ -52,7 +54,17 @@ export class UseraccountController {
   @ApiUnprocessableEntityResponse({ description: 'Invalid user ID' })
   @ApiForbiddenResponse({ description: 'Unauthorized request' })
   async findOne(@Param('id') id: string) {
-    return this.useraccountService.findOneById(+id);
+    const user =  await this.useraccountService.findOneById(+id);
+    if (user){
+      return {
+        id:user.id,
+        username:user.username,
+        isActive:user.isActive,
+        role:user.role
+      }
+    }else{
+        throw new NotFoundException("User Not found")
+      }
   }
 
   @Put(':id')

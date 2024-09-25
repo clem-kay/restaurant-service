@@ -18,7 +18,7 @@ export class UseraccountService {
   constructor(private prisma: PrismaService) {}
 
   async activate(id: number, body: { isActive: boolean }) {
-    this.logger.log(`Activating user account with ID: ${id}`);
+    body.isActive ? this.logger.log(`Activating user account with ID: ${id}`) : this.logger.log(`Deactivating user account with ID: ${id}`) ;
     try {
       const result = await this.prisma.userAccount.update({
         where: { id },
@@ -123,7 +123,7 @@ export class UseraccountService {
     this.logger.log('Fetching all user accounts');
     try {
       const userAccounts = await this.prisma.userAccount.findMany({
-        select: { username: true, role: true, isActive: true },
+        select: { id:true, username: true, role: true, isActive: true },
       });
       this.logger.log('Successfully fetched all user accounts');
       return userAccounts;
