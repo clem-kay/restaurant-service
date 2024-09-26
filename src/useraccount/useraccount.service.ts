@@ -128,7 +128,7 @@ export class UseraccountService {
     this.logger.log('Fetching all user accounts');
     try {
       const userAccounts = await this.prisma.userAccount.findMany({
-        select: { id:true, username: true, role: true, isActive: true },
+        select: { id:true, username: true, role: true, isActive: true, createdAt:true },
       });
       this.logger.log('Successfully fetched all user accounts');
       return userAccounts;
