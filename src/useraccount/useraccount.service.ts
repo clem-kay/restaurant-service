@@ -25,7 +25,12 @@ export class UseraccountService {
         data: body,
       });
       this.logger.log(`Successfully activated user account with ID: ${id}`);
-      return result;
+      const userReturn = {
+        username:result.username,
+        role:result.role,
+        isActive:result.isActive,
+      }
+      return userReturn;
     } catch (error) {
       this.logger.error(
         `Failed to activate user account with ID: ${id}`,
