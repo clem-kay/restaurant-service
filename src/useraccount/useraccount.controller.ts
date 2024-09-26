@@ -114,10 +114,10 @@ export class UseraccountController {
   },
 })
 async activate(
-  @Param('id') id: number,
+  @Param('id') id: string,
   @Body() body: { isActive: boolean },
 ) {
-  return this.useraccountService.activate(id, body);
+  return this.useraccountService.activate(+id, body);
 }
 
   @Post('change-password')
