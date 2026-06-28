@@ -9,11 +9,15 @@ export class CategoryService {
 
   constructor(private prisma: PrismaService) {}
 
-  async create(createCategoryDto: CreateCategoryDto) {
+  async create(createCategoryDto: CreateCategoryDto & { restaurantId?: number }) {
     this.logger.log('Creating a new category');
     try {
       const newCategory = await this.prisma.foodCategory.create({
-        data: createCategoryDto,
+        data: {
+          name: createCategoryDto.name,
+          description: createCategoryDto.description,
+          restaurantId: createCategoryDto.restaurantId ?? 1,
+        },
       });
       this.logger.log('Successfully created a new category');
       return newCategory;
@@ -23,22 +27,26 @@ export class CategoryService {
     }
   }
 
-  async findAll() {
-    this.logger.log('Fetching all categories');
+  async findAll(restaurantId?: number) {
+    this.logger.log(`Fetching categories restaurantId=${restaurantId ?? 'all'}`);
     try {
+      const where: any = {};
+      if (restaurantId) where.restaurantId = restaurantId;
+
       const categories = await this.prisma.foodCategory.findMany({
+        where,
         include: {
           _count: {
             select: {
-              FoodMenu: true,
+              menu: true,
             },
           },
         },
       });
-      this.logger.log('Successfully fetched all categories');
+      this.logger.log(`Successfully fetched ${categories.length} categories`);
       return categories.map((category) => ({
         ...category,
-        menuCount: category._count.FoodMenu,
+        menuCount: category._count.menu,
       }));
     } catch (error) {
       this.logger.error('Failed to fetch all categories', error.stack);
