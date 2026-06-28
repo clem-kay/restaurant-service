@@ -4,66 +4,46 @@ import {
   IsOptional,
   IsNumber,
   Min,
+  IsBoolean,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateFoodmenuDto {
   @IsString()
   @IsNotEmpty()
-  @ApiProperty({
-    type: String,
-    description:
-      'This is a required property, should be the name of the food you wish to add',
-  })
+  @ApiProperty({ description: 'Name of the food item' })
   name: string;
 
   @IsNumber()
   @Min(0)
-  @ApiProperty({
-    type: Number,
-    description: 'This is a required property, should be the price of the food',
-  })
+  @ApiProperty({ description: 'Price of the food item' })
   price: number;
 
   @IsNumber()
   @Min(0)
   @IsOptional()
-  @ApiProperty({
-    type: Number,
-    description: 'This is a required property, should be the quantity of food',
-  })
-  quantity: number;
+  @ApiPropertyOptional({ description: 'Available quantity' })
+  quantity?: number;
 
   @IsOptional()
-  @ApiProperty({
-    type: String,
-    description:
-      'This is an optional property, should be the image URL. You can decide to upload the image somewhere or hit our image upload endpoint to get the URL',
-  })
-  imageUrl: string;
+  @IsString()
+  @ApiPropertyOptional({ description: 'Image URL of the food item' })
+  imageUrl?: string;
 
   @IsString()
   @IsOptional()
-  @ApiProperty({
-    type: String,
-    description:
-      'This is an optional property, should provide some description of the food',
-  })
-  description: string;
+  @ApiPropertyOptional({ description: 'Short description of the food item' })
+  description?: string;
 
-  @IsNotEmpty()
-  @ApiProperty({
-    type: Number,
-    description:
-      'This is a required property, should be the ID of the user creating or updating the menu item',
-  })
-  userAccountId: number;
+  @IsBoolean()
+  @IsOptional()
+  @ApiPropertyOptional({ description: 'Whether the item is currently available', default: true })
+  isAvailable?: boolean;
 
+  @IsNumber()
   @IsNotEmpty()
-  @ApiProperty({
-    type: Number,
-    description:
-      'This is a required property, should be the ID of the food category the food belongs to',
-  })
+  @ApiProperty({ description: 'ID of the food category this item belongs to' })
   categoryId: number;
 }
+
+export class UpdateFoodmenuDto extends CreateFoodmenuDto {}

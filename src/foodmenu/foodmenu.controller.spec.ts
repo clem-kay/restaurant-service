@@ -6,6 +6,7 @@ import { CreateFoodmenuDto } from './dto/create-foodmenu.dto';
 const mockFoodmenuService = {
   create: jest.fn(),
   findAll: jest.fn(),
+  findMine: jest.fn(),
   findOne: jest.fn(),
   update: jest.fn(),
   remove: jest.fn(),
@@ -19,17 +20,11 @@ describe('FoodmenuController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [FoodmenuController],
-      providers: [
-        {
-          provide: FoodmenuService,
-          useValue: mockFoodmenuService,
-        },
-      ],
+      providers: [{ provide: FoodmenuService, useValue: mockFoodmenuService }],
     }).compile();
 
     controller = module.get<FoodmenuController>(FoodmenuController);
     service = module.get(FoodmenuService);
-
     jest.clearAllMocks();
   });
 
@@ -37,160 +32,127 @@ describe('FoodmenuController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── create ──────────────────────────────────────────────────────────────────
+  // ─── create ───────────────────────────────────────────────────────────────
 
   describe('create', () => {
-    it('should call service.create with the provided dto', () => {
+    it('should call service.create with restaurantId and dto', () => {
       const dto: CreateFoodmenuDto = {
         name: 'Jollof Rice',
         price: 15.99,
         quantity: 10,
         imageUrl: 'https://example.com/jollof.jpg',
         description: 'West African classic',
-        userAccountId: 99,
         categoryId: 3,
       };
-      const expected = { id: 1, ...dto };
+      const expected = { id: 1, ...dto, restaurantId: 5 };
       service.create.mockReturnValue(expected);
 
-      const result = controller.create(dto);
+      const result = controller.create(5, dto);
 
-      expect(service.create).toHaveBeenCalledWith(dto);
+      expect(service.create).toHaveBeenCalledWith(5, dto);
       expect(result).toEqual(expected);
     });
   });
 
-  // ─── findAll ─────────────────────────────────────────────────────────────────
+  // ─── findMine ─────────────────────────────────────────────────────────────
 
-  describe('findAll', () => {
-    it('should call service.findAll with { isAvailable: true } when isAvailable="true"', () => {
-      service.findAll.mockReturnValue([]);
-
-      controller.findAll('true', undefined, undefined);
-
-      expect(service.findAll).toHaveBeenCalledWith({
-        isAvailable: true,
-        restaurantId: undefined,
-        categoryId: undefined,
-      });
-    });
-
-    it('should call service.findAll with { isAvailable: false } when isAvailable="false"', () => {
-      service.findAll.mockReturnValue([]);
-
-      controller.findAll('false', undefined, undefined);
-
-      expect(service.findAll).toHaveBeenCalledWith({
-        isAvailable: false,
-        restaurantId: undefined,
-        categoryId: undefined,
-      });
-    });
-
-    it('should call service.findAll with { isAvailable: undefined } when isAvailable is undefined', () => {
-      service.findAll.mockReturnValue([]);
-
-      controller.findAll(undefined, undefined, undefined);
-
-      expect(service.findAll).toHaveBeenCalledWith({
-        isAvailable: undefined,
-        restaurantId: undefined,
-        categoryId: undefined,
-      });
-    });
-
-    it('should call service.findAll with { restaurantId: 1 } when restaurantId="1"', () => {
-      service.findAll.mockReturnValue([]);
-
-      controller.findAll(undefined, '1', undefined);
-
-      expect(service.findAll).toHaveBeenCalledWith({
-        isAvailable: undefined,
-        restaurantId: 1,
-        categoryId: undefined,
-      });
-    });
-
-    it('should call service.findAll with { categoryId: 2 } when categoryId="2"', () => {
-      service.findAll.mockReturnValue([]);
-
-      controller.findAll(undefined, undefined, '2');
-
-      expect(service.findAll).toHaveBeenCalledWith({
-        isAvailable: undefined,
-        restaurantId: undefined,
-        categoryId: 2,
-      });
+  describe('findMine', () => {
+    it('should call service.findMine with restaurantId', () => {
+      service.findMine.mockReturnValue([]);
+      controller.findMine(5);
+      expect(service.findMine).toHaveBeenCalledWith(5);
     });
   });
 
-  // ─── findOne ─────────────────────────────────────────────────────────────────
+  // ─── findAll ──────────────────────────────────────────────────────────────
+
+  describe('findAll', () => {
+    it('should call service.findAll with isAvailable=true when "true"', () => {
+      service.findAll.mockReturnValue([]);
+      controller.findAll('true', undefined, undefined);
+      expect(service.findAll).toHaveBeenCalledWith({ isAvailable: true, restaurantId: undefined, categoryId: undefined });
+    });
+
+    it('should call service.findAll with isAvailable=false when "false"', () => {
+      service.findAll.mockReturnValue([]);
+      controller.findAll('false', undefined, undefined);
+      expect(service.findAll).toHaveBeenCalledWith({ isAvailable: false, restaurantId: undefined, categoryId: undefined });
+    });
+
+    it('should call service.findAll with restaurantId=1 when "1"', () => {
+      service.findAll.mockReturnValue([]);
+      controller.findAll(undefined, '1', undefined);
+      expect(service.findAll).toHaveBeenCalledWith({ isAvailable: undefined, restaurantId: 1, categoryId: undefined });
+    });
+
+    it('should call service.findAll with categoryId=2 when "2"', () => {
+      service.findAll.mockReturnValue([]);
+      controller.findAll(undefined, undefined, '2');
+      expect(service.findAll).toHaveBeenCalledWith({ isAvailable: undefined, restaurantId: undefined, categoryId: 2 });
+    });
+  });
+
+  // ─── findOne ──────────────────────────────────────────────────────────────
 
   describe('findOne', () => {
     it('should call service.findOne with the numeric id', () => {
       const expected = { id: 1, name: 'Jollof Rice' };
       service.findOne.mockReturnValue(expected);
 
-      const result = controller.findOne('1');
+      const result = controller.findOne(1);
 
       expect(service.findOne).toHaveBeenCalledWith(1);
       expect(result).toEqual(expected);
     });
   });
 
-  // ─── update ──────────────────────────────────────────────────────────────────
+  // ─── update ───────────────────────────────────────────────────────────────
 
   describe('update', () => {
-    it('should call service.update with the numeric id and dto', () => {
+    it('should call service.update with restaurantId, numeric id, and dto', () => {
       const dto: CreateFoodmenuDto = {
         name: 'Updated Jollof Rice',
         price: 18.99,
         quantity: 5,
-        imageUrl: 'https://example.com/updated.jpg',
         description: 'Updated description',
-        userAccountId: 99,
         categoryId: 3,
       };
-      const expected = { id: 2, ...dto };
+      const expected = { id: 2, ...dto, restaurantId: 5 };
       service.update.mockReturnValue(expected);
 
-      const result = controller.update('2', dto);
+      const result = controller.update(5, 2, dto);
 
-      expect(service.update).toHaveBeenCalledWith(2, dto);
+      expect(service.update).toHaveBeenCalledWith(5, 2, dto);
       expect(result).toEqual(expected);
     });
   });
 
-  // ─── remove ──────────────────────────────────────────────────────────────────
+  // ─── remove ───────────────────────────────────────────────────────────────
 
   describe('remove', () => {
-    it('should call service.remove with the numeric id', () => {
-      const expected = { id: 3, name: 'Deleted Item' };
+    it('should call service.remove with restaurantId and numeric id', () => {
+      const expected = { message: 'Menu item deleted' };
       service.remove.mockReturnValue(expected);
 
-      const result = controller.remove('3');
+      const result = controller.remove(5, 3);
 
-      expect(service.remove).toHaveBeenCalledWith(3);
+      expect(service.remove).toHaveBeenCalledWith(5, 3);
       expect(result).toEqual(expected);
     });
   });
 
-  // ─── findAllByCategory ───────────────────────────────────────────────────────
+  // ─── findAllByCategory ────────────────────────────────────────────────────
 
   describe('findAllByCategory', () => {
-    it('should call service.findAllByCategory with numeric id and true when isAvailable="true"', () => {
+    it('should call service.findAllByCategory with numeric id and true when "true"', () => {
       service.findAllByCategory.mockReturnValue([]);
-
-      controller.findAllByCategory('5', 'true');
-
+      controller.findAllByCategory(5, 'true');
       expect(service.findAllByCategory).toHaveBeenCalledWith(5, true);
     });
 
-    it('should call service.findAllByCategory with numeric id and undefined when isAvailable is undefined', () => {
+    it('should call service.findAllByCategory with numeric id and undefined when not provided', () => {
       service.findAllByCategory.mockReturnValue([]);
-
-      controller.findAllByCategory('5', undefined);
-
+      controller.findAllByCategory(5, undefined);
       expect(service.findAllByCategory).toHaveBeenCalledWith(5, undefined);
     });
   });

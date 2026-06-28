@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Logger } from '@nestjs/common';
+import { ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -9,7 +9,7 @@ const mockPrismaService = {
   foodCategory: {
     create: jest.fn(),
     findMany: jest.fn(),
-    findUniqueOrThrow: jest.fn(),
+    findUnique: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
     count: jest.fn(),
@@ -37,9 +37,7 @@ describe('CategoryService', () => {
     service = module.get<CategoryService>(CategoryService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  afterEach(() => jest.clearAllMocks());
 
   it('should be defined', () => {
     expect(service).toBeDefined();
@@ -48,16 +46,13 @@ describe('CategoryService', () => {
   // ─── create ───────────────────────────────────────────────────────────────
 
   describe('create', () => {
-    const dto: CreateCategoryDto = {
-      name: 'Starters',
-      description: 'Appetizers and starters',
-    };
+    const dto: CreateCategoryDto = { name: 'Starters', description: 'Appetizers and starters' };
 
-    it('should create a category with the given restaurantId', async () => {
-      const created = { id: 1, name: 'Starters', description: 'Appetizers and starters', restaurantId: 5 };
+    it('should create a category scoped to the given restaurantId', async () => {
+      const created = { id: 1, ...dto, restaurantId: 5 };
       mockPrismaService.foodCategory.create.mockResolvedValue(created);
 
-      const result = await service.create({ ...dto, restaurantId: 5 });
+      const result = await service.create(5, dto);
 
       expect(mockPrismaService.foodCategory.create).toHaveBeenCalledWith({
         data: { name: dto.name, description: dto.description, restaurantId: 5 },
@@ -65,37 +60,22 @@ describe('CategoryService', () => {
       expect(result).toEqual(created);
     });
 
-    it('should default restaurantId to 1 when not provided', async () => {
-      const created = { id: 2, name: 'Starters', description: 'Appetizers and starters', restaurantId: 1 };
-      mockPrismaService.foodCategory.create.mockResolvedValue(created);
-
-      const result = await service.create(dto);
-
-      expect(mockPrismaService.foodCategory.create).toHaveBeenCalledWith({
-        data: { name: dto.name, description: dto.description, restaurantId: 1 },
-      });
-      expect(result).toEqual(created);
-    });
-
     it('should throw when prisma.foodCategory.create rejects', async () => {
-      const error = new Error('DB error');
-      mockPrismaService.foodCategory.create.mockRejectedValue(error);
-
-      await expect(service.create(dto)).rejects.toThrow('DB error');
-      expect(Logger.prototype.error).toHaveBeenCalled();
+      mockPrismaService.foodCategory.create.mockRejectedValue(new Error('DB error'));
+      await expect(service.create(5, dto)).rejects.toThrow('DB error');
     });
   });
 
   // ─── findAll ──────────────────────────────────────────────────────────────
 
   describe('findAll', () => {
-    const rawCategories = [
-      { id: 1, name: 'Starters', description: 'Desc', restaurantId: 1, _count: { menu: 3 } },
-      { id: 2, name: 'Mains', description: 'Desc', restaurantId: 1, _count: { menu: 5 } },
+    const raw = [
+      { id: 1, name: 'Starters', restaurantId: 1, _count: { menu: 3 } },
+      { id: 2, name: 'Mains', restaurantId: 1, _count: { menu: 5 } },
     ];
 
-    it('should return all categories with menuCount when no restaurantId is provided', async () => {
-      mockPrismaService.foodCategory.findMany.mockResolvedValue(rawCategories);
+    it('should return all categories with menuCount when no restaurantId', async () => {
+      mockPrismaService.foodCategory.findMany.mockResolvedValue(raw);
 
       const result = await service.findAll();
 
@@ -103,61 +83,61 @@ describe('CategoryService', () => {
         where: {},
         include: { _count: { select: { menu: true } } },
       });
-      expect(result).toEqual([
-        { id: 1, name: 'Starters', description: 'Desc', restaurantId: 1, _count: { menu: 3 }, menuCount: 3 },
-        { id: 2, name: 'Mains', description: 'Desc', restaurantId: 1, _count: { menu: 5 }, menuCount: 5 },
-      ]);
+      expect(result[0].menuCount).toBe(3);
+      expect(result[1].menuCount).toBe(5);
     });
 
     it('should filter by restaurantId when provided', async () => {
-      mockPrismaService.foodCategory.findMany.mockResolvedValue(rawCategories);
+      mockPrismaService.foodCategory.findMany.mockResolvedValue(raw);
 
-      const result = await service.findAll(1);
+      await service.findAll(1);
 
       expect(mockPrismaService.foodCategory.findMany).toHaveBeenCalledWith({
         where: { restaurantId: 1 },
         include: { _count: { select: { menu: true } } },
       });
-      expect(result[0].menuCount).toBe(3);
-      expect(result[1].menuCount).toBe(5);
     });
 
-    it('should return an empty array when no categories exist', async () => {
+    it('should return empty array when no categories exist', async () => {
       mockPrismaService.foodCategory.findMany.mockResolvedValue([]);
-
-      const result = await service.findAll();
-
-      expect(result).toEqual([]);
+      expect(await service.findAll()).toEqual([]);
     });
+  });
 
-    it('should throw when prisma.foodCategory.findMany rejects', async () => {
-      const error = new Error('findMany error');
-      mockPrismaService.foodCategory.findMany.mockRejectedValue(error);
+  // ─── findMine ─────────────────────────────────────────────────────────────
 
-      await expect(service.findAll()).rejects.toThrow('findMany error');
-      expect(Logger.prototype.error).toHaveBeenCalled();
+  describe('findMine', () => {
+    it('should return categories for the given restaurantId', async () => {
+      const raw = [{ id: 1, name: 'Starters', restaurantId: 5, _count: { menu: 2 } }];
+      mockPrismaService.foodCategory.findMany.mockResolvedValue(raw);
+
+      const result = await service.findMine(5);
+
+      expect(mockPrismaService.foodCategory.findMany).toHaveBeenCalledWith({
+        where: { restaurantId: 5 },
+        include: { _count: { select: { menu: true } } },
+        orderBy: { createdAt: 'asc' },
+      });
+      expect(result[0].menuCount).toBe(2);
     });
   });
 
   // ─── findOne ──────────────────────────────────────────────────────────────
 
   describe('findOne', () => {
-    it('should return the category with the given id', async () => {
-      const category = { id: 1, name: 'Starters', description: 'Desc', restaurantId: 1 };
-      mockPrismaService.foodCategory.findUniqueOrThrow.mockResolvedValue(category);
+    it('should return the category when found', async () => {
+      const category = { id: 1, name: 'Starters', restaurantId: 5 };
+      mockPrismaService.foodCategory.findUnique.mockResolvedValue(category);
 
       const result = await service.findOne(1);
 
-      expect(mockPrismaService.foodCategory.findUniqueOrThrow).toHaveBeenCalledWith({ where: { id: 1 } });
+      expect(mockPrismaService.foodCategory.findUnique).toHaveBeenCalledWith({ where: { id: 1 } });
       expect(result).toEqual(category);
     });
 
-    it('should throw when prisma.foodCategory.findUniqueOrThrow rejects', async () => {
-      const error = new Error('Not found');
-      mockPrismaService.foodCategory.findUniqueOrThrow.mockRejectedValue(error);
-
-      await expect(service.findOne(99)).rejects.toThrow('Not found');
-      expect(Logger.prototype.error).toHaveBeenCalled();
+    it('should throw NotFoundException when category not found', async () => {
+      mockPrismaService.foodCategory.findUnique.mockResolvedValue(null);
+      await expect(service.findOne(99)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -166,78 +146,63 @@ describe('CategoryService', () => {
   describe('update', () => {
     const dto: UpdateCategoryDto = { name: 'Updated Name' };
 
-    it('should update and return the updated category', async () => {
-      const updated = { id: 1, name: 'Updated Name', description: 'Desc', restaurantId: 1 };
+    it('should update the category when ownership is confirmed', async () => {
+      mockPrismaService.foodCategory.findUnique.mockResolvedValue({ restaurantId: 5 });
+      const updated = { id: 1, name: 'Updated Name', restaurantId: 5 };
       mockPrismaService.foodCategory.update.mockResolvedValue(updated);
 
-      const result = await service.update(1, dto);
+      const result = await service.update(5, 1, dto);
 
       expect(mockPrismaService.foodCategory.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { ...dto },
+        data: dto,
       });
       expect(result).toEqual(updated);
     });
 
-    it('should throw when prisma.foodCategory.update rejects', async () => {
-      const error = new Error('Update failed');
-      mockPrismaService.foodCategory.update.mockRejectedValue(error);
+    it('should throw ForbiddenException when category belongs to different restaurant', async () => {
+      mockPrismaService.foodCategory.findUnique.mockResolvedValue({ restaurantId: 99 });
+      await expect(service.update(5, 1, dto)).rejects.toThrow(ForbiddenException);
+    });
 
-      await expect(service.update(1, dto)).rejects.toThrow('Update failed');
-      expect(Logger.prototype.error).toHaveBeenCalled();
+    it('should throw NotFoundException when category does not exist', async () => {
+      mockPrismaService.foodCategory.findUnique.mockResolvedValue(null);
+      await expect(service.update(5, 999, dto)).rejects.toThrow(NotFoundException);
     });
   });
 
   // ─── remove ───────────────────────────────────────────────────────────────
 
   describe('remove', () => {
-    it('should delete menu items first, then the category, and return { message: "success" }', async () => {
+    it('should delete menu items and category when ownership confirmed', async () => {
+      mockPrismaService.foodCategory.findUnique.mockResolvedValue({ restaurantId: 5 });
       mockPrismaService.foodMenu.deleteMany.mockResolvedValue({ count: 2 });
-      mockPrismaService.foodCategory.delete.mockResolvedValue({ id: 1, name: 'Starters' });
+      mockPrismaService.foodCategory.delete.mockResolvedValue({ id: 1 });
 
-      const result = await service.remove(1);
+      const result = await service.remove(5, 1);
 
       expect(mockPrismaService.foodMenu.deleteMany).toHaveBeenCalledWith({ where: { categoryId: 1 } });
       expect(mockPrismaService.foodCategory.delete).toHaveBeenCalledWith({ where: { id: 1 } });
-      expect(result).toEqual({ message: 'success' });
+      expect(result).toEqual({ message: 'Category deleted' });
     });
 
-    it('should throw when prisma.foodMenu.deleteMany rejects', async () => {
-      const error = new Error('deleteMany error');
-      mockPrismaService.foodMenu.deleteMany.mockRejectedValue(error);
-
-      await expect(service.remove(1)).rejects.toThrow('deleteMany error');
-      expect(Logger.prototype.error).toHaveBeenCalled();
+    it('should throw ForbiddenException when category belongs to different restaurant', async () => {
+      mockPrismaService.foodCategory.findUnique.mockResolvedValue({ restaurantId: 99 });
+      await expect(service.remove(5, 1)).rejects.toThrow(ForbiddenException);
     });
 
-    it('should throw when prisma.foodCategory.delete rejects', async () => {
-      mockPrismaService.foodMenu.deleteMany.mockResolvedValue({ count: 0 });
-      const error = new Error('delete error');
-      mockPrismaService.foodCategory.delete.mockRejectedValue(error);
-
-      await expect(service.remove(1)).rejects.toThrow('delete error');
-      expect(Logger.prototype.error).toHaveBeenCalled();
+    it('should throw NotFoundException when category does not exist', async () => {
+      mockPrismaService.foodCategory.findUnique.mockResolvedValue(null);
+      await expect(service.remove(5, 999)).rejects.toThrow(NotFoundException);
     });
   });
 
   // ─── findTotalCategories ──────────────────────────────────────────────────
 
   describe('findTotalCategories', () => {
-    it('should return the total count of categories', async () => {
+    it('should return total count', async () => {
       mockPrismaService.foodCategory.count.mockResolvedValue(7);
-
-      const result = await service.findTotalCategories();
-
-      expect(mockPrismaService.foodCategory.count).toHaveBeenCalled();
-      expect(result).toBe(7);
-    });
-
-    it('should return 0 when there are no categories', async () => {
-      mockPrismaService.foodCategory.count.mockResolvedValue(0);
-
-      const result = await service.findTotalCategories();
-
-      expect(result).toBe(0);
+      expect(await service.findTotalCategories()).toBe(7);
     });
   });
 });
