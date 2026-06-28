@@ -43,7 +43,7 @@ export class RiderController {
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Register rider profile',
-    description: 'Creates a rider profile linked to the authenticated user account. The profile starts as unapproved and unavailable.',
+    description: 'Creates a rider profile linked to the authenticated user account. Starts as unapproved and unavailable.',
   })
   @ApiBody({ type: CreateRiderDto })
   @ApiResponse({ status: 201, description: 'Rider profile created successfully' })
@@ -57,10 +57,7 @@ export class RiderController {
   @Get('me')
   @UseGuards(AtGuard)
   @ApiBearerAuth('access-token')
-  @ApiOperation({
-    summary: 'Get own rider profile',
-    description: 'Returns the authenticated rider\'s profile with account information.',
-  })
+  @ApiOperation({ summary: 'Get own rider profile' })
   @ApiResponse({ status: 200, description: 'Rider profile returned' })
   @ApiResponse({ status: 404, description: 'Rider profile not found' })
   getProfile(@GetUser('sub') accountId: number) {
@@ -72,13 +69,9 @@ export class RiderController {
   @Patch('me')
   @UseGuards(AtGuard)
   @ApiBearerAuth('access-token')
-  @ApiOperation({
-    summary: 'Update own rider profile',
-    description: 'Updates the authenticated rider\'s profile fields.',
-  })
+  @ApiOperation({ summary: 'Update own rider profile' })
   @ApiBody({ type: UpdateRiderDto })
   @ApiResponse({ status: 200, description: 'Rider profile updated' })
-  @ApiResponse({ status: 404, description: 'Rider profile not found' })
   updateProfile(@GetUser('sub') accountId: number, @Body() dto: UpdateRiderDto) {
     return this.riderService.updateProfile(accountId, dto);
   }
@@ -89,10 +82,7 @@ export class RiderController {
   @UseGuards(AtGuard)
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('access-token')
-  @ApiOperation({
-    summary: 'Toggle rider availability',
-    description: 'Sets whether the rider is available to accept delivery assignments.',
-  })
+  @ApiOperation({ summary: 'Toggle rider availability' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -101,7 +91,6 @@ export class RiderController {
     },
   })
   @ApiResponse({ status: 200, description: 'Availability status updated' })
-  @ApiResponse({ status: 404, description: 'Rider profile not found' })
   toggleAvailability(
     @GetUser('sub') accountId: number,
     @Body('isAvailable', ParseBoolPipe) isAvailable: boolean,
@@ -114,12 +103,8 @@ export class RiderController {
   @Get('deliveries')
   @UseGuards(AtGuard)
   @ApiBearerAuth('access-token')
-  @ApiOperation({
-    summary: 'Get rider\'s deliveries',
-    description: 'Returns all deliveries assigned to the authenticated rider, sorted by most recent first.',
-  })
+  @ApiOperation({ summary: "Get rider's deliveries" })
   @ApiResponse({ status: 200, description: 'List of deliveries' })
-  @ApiResponse({ status: 404, description: 'Rider profile not found' })
   getDeliveries(@GetUser('sub') accountId: number) {
     return this.riderService.getDeliveries(accountId);
   }
@@ -129,18 +114,12 @@ export class RiderController {
   @Get('earnings')
   @UseGuards(AtGuard)
   @ApiBearerAuth('access-token')
-  @ApiOperation({
-    summary: 'Get rider earnings summary',
-    description: 'Returns the authenticated rider\'s total earnings and number of completed deliveries.',
-  })
+  @ApiOperation({ summary: 'Get rider earnings summary' })
   @ApiResponse({
     status: 200,
     description: 'Earnings summary',
-    schema: {
-      example: { totalEarnings: 450.5, totalDeliveries: 38 },
-    },
+    schema: { example: { totalEarnings: 450.5, totalDeliveries: 38 } },
   })
-  @ApiResponse({ status: 404, description: 'Rider profile not found' })
   getEarnings(@GetUser('sub') accountId: number) {
     return this.riderService.getEarnings(accountId);
   }
@@ -151,12 +130,9 @@ export class RiderController {
   @UseGuards(AtGuard, RolesGuard)
   @Roles(UserRole.PLATFORM_ADMIN)
   @ApiBearerAuth('access-token')
-  @ApiOperation({
-    summary: 'List all riders (Platform Admin)',
-    description: 'Returns all rider profiles. Supports optional filtering by approval status and availability.',
-  })
-  @ApiQuery({ name: 'isApproved', required: false, type: Boolean, description: 'Filter by approval status' })
-  @ApiQuery({ name: 'isAvailable', required: false, type: Boolean, description: 'Filter by availability status' })
+  @ApiOperation({ summary: 'List all riders (Platform Admin)' })
+  @ApiQuery({ name: 'isApproved', required: false, type: Boolean })
+  @ApiQuery({ name: 'isAvailable', required: false, type: Boolean })
   @ApiResponse({ status: 200, description: 'List of riders' })
   findAll(
     @Query('isApproved') isApproved?: string,
@@ -174,10 +150,7 @@ export class RiderController {
   @UseGuards(AtGuard, RolesGuard)
   @Roles(UserRole.PLATFORM_ADMIN)
   @ApiBearerAuth('access-token')
-  @ApiOperation({
-    summary: 'Get rider by ID (Platform Admin)',
-    description: 'Returns a single rider profile by their numeric ID.',
-  })
+  @ApiOperation({ summary: 'Get rider by ID (Platform Admin)' })
   @ApiParam({ name: 'id', description: 'Rider ID', example: 1 })
   @ApiResponse({ status: 200, description: 'Rider profile returned' })
   @ApiResponse({ status: 404, description: 'Rider not found' })
@@ -192,10 +165,7 @@ export class RiderController {
   @Roles(UserRole.PLATFORM_ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('access-token')
-  @ApiOperation({
-    summary: 'Approve or reject a rider (Platform Admin)',
-    description: 'Approves or rejects a rider\'s profile, controlling whether they can accept delivery assignments.',
-  })
+  @ApiOperation({ summary: 'Approve or reject a rider (Platform Admin)' })
   @ApiParam({ name: 'id', description: 'Rider ID', example: 1 })
   @ApiBody({
     schema: {
@@ -205,7 +175,6 @@ export class RiderController {
     },
   })
   @ApiResponse({ status: 200, description: 'Approval status updated' })
-  @ApiResponse({ status: 404, description: 'Rider not found' })
   setApproval(
     @Param('id', ParseIntPipe) id: number,
     @Body('approve', ParseBoolPipe) approve: boolean,

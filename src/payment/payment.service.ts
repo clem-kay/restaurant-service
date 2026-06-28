@@ -103,7 +103,6 @@ export class PaymentService {
       include: { orderItems: true, restaurant: { select: { name: true } } },
     });
 
-    // Notify restaurant of new order via socket
     this.trackingGateway.notifyRestaurant(data.restaurantId, {
       event: 'order:new',
       orderId: order.id,
@@ -184,7 +183,6 @@ export class PaymentService {
       items, note, deliveryFee, platformFee, restaurantPayout,
     } = metadata;
 
-    // Idempotency — skip if already processed
     const existing = await this.prisma.order.findUnique({ where: { paystackReference: reference } });
     if (existing) return;
 
@@ -227,7 +225,6 @@ export class PaymentService {
   }
 
   // ─── Confirm COD Cash Received ────────────────────────────────────────────
-  // Called by rider when customer hands over cash
 
   async confirmCashReceived(riderId: number, orderId: number) {
     const delivery = await this.prisma.delivery.findUnique({

@@ -31,7 +31,7 @@ export class RestaurantService {
         ...dto,
         ownerId: accountId,
         onboardingMethod: OnboardingMethod.SELF_SERVICE,
-        isApproved: false, // pending platform admin approval
+        isApproved: false,
       },
     });
 
@@ -78,7 +78,6 @@ export class RestaurantService {
   // ─── Public listings (customer-facing) ───────────────────────────────────
 
   async findNearby(lat: number, lng: number, radiusKm = 10) {
-    // Haversine filter — returns open & approved restaurants within radius
     const restaurants: any[] = await this.prisma.$queryRaw`
       SELECT
         r.id, r.name, r.description, r.logo, r."coverImage",
@@ -131,7 +130,6 @@ export class RestaurantService {
     const restaurant = await this.prisma.restaurant.findUnique({ where: { ownerId } });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
 
-    // Replace all hours for this restaurant
     await this.prisma.openingHours.deleteMany({ where: { restaurantId: restaurant.id } });
     return this.prisma.openingHours.createMany({
       data: hours.map((h) => ({ ...h, restaurantId: restaurant.id })),
@@ -154,5 +152,14 @@ export class RestaurantService {
       include: { owner: { include: { profile: true } } },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async findOne(id: number) {
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id },
+      include: { openingHours: true, categories: true, owner: { include: { profile: true } } },
+    });
+    if (!restaurant) throw new NotFoundException(`Restaurant ${id} not found`);
+    return restaurant;
   }
 }

@@ -9,15 +9,14 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { TrackingGateway } from 'src/tracking/tracking.gateway';
 import { DeliveryStatus, FoodStatus } from '@prisma/client';
 
-const RIDER_EARNING_RATE = 0.80; // rider gets 80% of delivery fee
+const RIDER_EARNING_RATE = 0.80;
 const INITIAL_SEARCH_RADIUS_KM = 5;
 const EXPANDED_SEARCH_RADIUS_KM = 10;
-const ASSIGNMENT_TIMEOUT_MS = 120_000; // 2 min before expanding radius
+const ASSIGNMENT_TIMEOUT_MS = 120_000;
 
 @Injectable()
 export class DeliveryService {
   private readonly logger = new Logger(DeliveryService.name);
-  // tracks pending assignment timeouts so we can clear them
   private assignmentTimers = new Map<number, NodeJS.Timeout>();
 
   constructor(
@@ -31,16 +30,12 @@ export class DeliveryService {
     this.logger.log(`Initiating rider search for order ${orderId}`);
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: {
-        restaurant: true,
-        deliveryAddress: true,
-      },
+      include: { restaurant: true, deliveryAddress: true },
     });
     if (!order) throw new NotFoundException('Order not found');
 
     await this.notifyNearbyRiders(order, INITIAL_SEARCH_RADIUS_KM);
 
-    // Expand search if no one accepts within 2 minutes
     const timer = setTimeout(async () => {
       const stillUnassigned = await this.prisma.delivery.findUnique({ where: { orderId } });
       if (!stillUnassigned) {
@@ -116,14 +111,12 @@ export class DeliveryService {
       }),
     ]);
 
-    // Clear the expansion timer — order is assigned
     const timer = this.assignmentTimers.get(orderId);
     if (timer) {
       clearTimeout(timer);
       this.assignmentTimers.delete(orderId);
     }
 
-    // Tell customer their rider is on the way
     this.trackingGateway.notifyOrderRoom(orderId, 'delivery:assigned', {
       riderId,
       riderName: `${rider.firstName} ${rider.lastName}`,
@@ -181,7 +174,6 @@ export class DeliveryService {
 
     const updated = await this.prisma.delivery.update({ where: { orderId }, data: updates });
 
-    // Broadcast status change to customer
     this.trackingGateway.notifyOrderRoom(orderId, 'delivery:status', {
       status,
       timestamp: new Date().toISOString(),
@@ -201,13 +193,7 @@ export class DeliveryService {
 
   // ─── Haversine query — find riders within radius ──────────────────────────
 
-  private async findAvailableRidersInRadius(
-    lat: number,
-    lng: number,
-    radiusKm: number,
-  ) {
-    // Postgres doesn't have built-in Haversine — we use raw SQL
-    // Earth radius = 6371 km
+  private async findAvailableRidersInRadius(lat: number, lng: number, radiusKm: number) {
     const riders: Array<{ id: number; distanceKm: number }> = await this.prisma.$queryRaw`
       SELECT
         r.id,

@@ -11,6 +11,16 @@ export class CreateRestaurantDto {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({ example: 'https://cdn.example.com/logo.png' })
+  @IsOptional()
+  @IsString()
+  logo?: string;
+
+  @ApiPropertyOptional({ example: 'https://cdn.example.com/cover.jpg' })
+  @IsOptional()
+  @IsString()
+  coverImage?: string;
+
   @ApiProperty({ example: '14 Oxford Street, Osu, Accra', description: 'Full street address' })
   @IsString()
   address: string;
@@ -37,7 +47,12 @@ export class CreateRestaurantDto {
   @IsEmail()
   email?: string;
 
-  @ApiPropertyOptional({ example: 5.0, description: 'Flat delivery fee charged to the customer (in your currency)' })
+  @ApiPropertyOptional({ example: 0.05, description: 'Platform commission rate (e.g. 0.05 = 5%)' })
+  @IsOptional()
+  @IsNumber()
+  commissionRate?: number;
+
+  @ApiPropertyOptional({ example: 5.0, description: 'Flat delivery fee charged to the customer' })
   @IsOptional()
   @IsNumber()
   deliveryFee?: number;
@@ -46,4 +61,9 @@ export class CreateRestaurantDto {
   @IsOptional()
   @IsNumber()
   estimatedMinutes?: number;
+
+  @ApiPropertyOptional({ example: 'ACCT_xxxxxxxxxxxx', description: 'Paystack subaccount code for split payments' })
+  @IsOptional()
+  @IsString()
+  paystackSubAccountCode?: string;
 }

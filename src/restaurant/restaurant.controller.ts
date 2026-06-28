@@ -24,24 +24,12 @@ export class RestaurantController {
   @Get('nearby')
   @ApiOperation({
     summary: 'List nearby restaurants (Customer)',
-    description: 'Returns open, approved restaurants within the given radius sorted by distance. Pass the customer\'s current GPS coordinates.',
+    description: 'Returns open, approved restaurants within the given radius sorted by distance.',
   })
   @ApiQuery({ name: 'lat', type: Number, example: 5.6037, description: 'Customer latitude' })
   @ApiQuery({ name: 'lng', type: Number, example: -0.187, description: 'Customer longitude' })
   @ApiQuery({ name: 'radius', type: Number, required: false, example: 10, description: 'Search radius in kilometres (default: 10)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Sorted list of nearby restaurants',
-    schema: {
-      example: [
-        {
-          id: 1, name: 'Mama Afrika Kitchen', address: '14 Oxford St, Accra',
-          deliveryFee: 5, estimatedMinutes: 25, isOpen: true, distanceKm: 1.2,
-          logo: 'https://...', coverImage: 'https://...',
-        },
-      ],
-    },
-  })
+  @ApiResponse({ status: 200, description: 'Sorted list of nearby restaurants' })
   findNearby(
     @Query('lat') lat: string,
     @Query('lng') lng: string,
@@ -56,24 +44,10 @@ export class RestaurantController {
   @Get(':id/menu')
   @ApiOperation({
     summary: 'Get restaurant menu (Customer)',
-    description: 'Returns the full menu for a restaurant, grouped by category. Only returns available items.',
+    description: 'Returns the full menu grouped by category. Only returns available items.',
   })
   @ApiParam({ name: 'id', description: 'Restaurant ID', example: 1 })
-  @ApiResponse({
-    status: 200,
-    description: 'Restaurant with nested categories and menu items',
-    schema: {
-      example: {
-        id: 1, name: 'Mama Afrika Kitchen',
-        categories: [
-          {
-            id: 2, name: 'Grills',
-            menu: [{ id: 5, name: 'Grilled Tilapia', price: 45.0, imageUrl: 'https://...', description: '...', isAvailable: true }],
-          },
-        ],
-      },
-    },
-  })
+  @ApiResponse({ status: 200, description: 'Restaurant with nested categories and menu items' })
   @ApiResponse({ status: 404, description: 'Restaurant not found or not approved' })
   getMenu(@Param('id', ParseIntPipe) id: number) {
     return this.restaurantService.findMenuByRestaurant(id);
@@ -87,14 +61,10 @@ export class RestaurantController {
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Self-register a restaurant (Restaurant Admin)',
-    description: 'Restaurant owners submit their details for review. The restaurant is created with `isApproved: false` and becomes visible only after a platform admin approves it via `PATCH /restaurant/:id/approve`.',
+    description: 'Restaurant owners submit their details for review. Created with isApproved: false pending platform admin approval.',
   })
   @ApiBody({ type: CreateRestaurantDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Restaurant submitted for review',
-    schema: { example: { id: 3, name: 'New Place', isApproved: false, message: 'Your restaurant is under review...' } },
-  })
+  @ApiResponse({ status: 201, description: 'Restaurant submitted for review' })
   @ApiResponse({ status: 400, description: 'Account already has a restaurant' })
   selfRegister(@GetUser('sub') accountId: number, @Body() dto: CreateRestaurantDto) {
     return this.restaurantService.selfRegister(accountId, dto);
@@ -106,7 +76,7 @@ export class RestaurantController {
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Open or close restaurant (Restaurant Admin)',
-    description: 'Toggles whether the restaurant accepts new orders. Closed restaurants are hidden from customer search results.',
+    description: 'Toggles whether the restaurant accepts new orders.',
   })
   @ApiBody({
     schema: {
@@ -125,27 +95,7 @@ export class RestaurantController {
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Set opening hours (Restaurant Admin)',
-    description: 'Replaces all existing opening hours with the provided schedule. `dayOfWeek`: 0=Sunday, 6=Saturday.',
-  })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['hours'],
-      properties: {
-        hours: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              dayOfWeek: { type: 'number', example: 1 },
-              openTime: { type: 'string', example: '09:00' },
-              closeTime: { type: 'string', example: '22:00' },
-              isClosed: { type: 'boolean', example: false },
-            },
-          },
-        },
-      },
-    },
+    description: 'Replaces all existing opening hours. dayOfWeek: 0=Sunday, 6=Saturday.',
   })
   @ApiResponse({ status: 200, description: 'Opening hours updated' })
   setHours(@GetUser('ownerId') ownerId: number, @Body() body: { hours: any[] }) {
@@ -161,7 +111,7 @@ export class RestaurantController {
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Manually create a restaurant (Platform Admin)',
-    description: 'Creates a restaurant on behalf of an owner. Bypasses the approval queue — restaurant is active immediately unless `isApproved: false` is explicitly set.',
+    description: 'Creates a restaurant on behalf of an owner. Bypasses the approval queue.',
   })
   @ApiBody({
     schema: {
@@ -170,7 +120,7 @@ export class RestaurantController {
         {
           type: 'object', required: ['ownerId'],
           properties: {
-            ownerId: { type: 'number', example: 5, description: 'ID of the RESTAURANT_ADMIN account to assign as owner' },
+            ownerId: { type: 'number', example: 5 },
             isApproved: { type: 'boolean', example: true, default: true },
           },
         },
@@ -189,7 +139,6 @@ export class RestaurantController {
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Approve or reject a restaurant (Platform Admin)',
-    description: 'Approves a self-registered restaurant (making it visible to customers) or rejects it.',
   })
   @ApiParam({ name: 'id', description: 'Restaurant ID', example: 3 })
   @ApiBody({
@@ -217,9 +166,9 @@ export class RestaurantController {
   @UseGuards(AtGuard, RolesGuard)
   @Roles(UserRole.PLATFORM_ADMIN)
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'List all restaurants (Platform Admin)', description: 'Supports optional filtering by approval status and open/closed state.' })
-  @ApiQuery({ name: 'isApproved', required: false, type: Boolean, description: 'Filter by approval status (true/false)' })
-  @ApiQuery({ name: 'isOpen', required: false, type: Boolean, description: 'Filter by open status (true/false)' })
+  @ApiOperation({ summary: 'List all restaurants (Platform Admin)' })
+  @ApiQuery({ name: 'isApproved', required: false, type: Boolean })
+  @ApiQuery({ name: 'isOpen', required: false, type: Boolean })
   @ApiResponse({ status: 200, description: 'All restaurants with owner info' })
   all(
     @Query('isApproved') isApproved?: string,
@@ -229,5 +178,17 @@ export class RestaurantController {
       isApproved: isApproved !== undefined ? isApproved === 'true' : undefined,
       isOpen:     isOpen     !== undefined ? isOpen     === 'true' : undefined,
     });
+  }
+
+  @Get(':id')
+  @UseGuards(AtGuard, RolesGuard)
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Get restaurant by ID (Platform Admin)' })
+  @ApiParam({ name: 'id', description: 'Restaurant ID', example: 1 })
+  @ApiResponse({ status: 200, description: 'Restaurant details' })
+  @ApiResponse({ status: 404, description: 'Restaurant not found' })
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.restaurantService.findOne(id);
   }
 }

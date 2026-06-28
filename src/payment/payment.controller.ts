@@ -3,7 +3,7 @@ import {
   Post, RawBodyRequest, Req, UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth, ApiBody, ApiConsumes, ApiExcludeEndpoint,
+  ApiBearerAuth, ApiBody, ApiExcludeEndpoint,
   ApiOperation, ApiResponse, ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -25,14 +25,14 @@ export class PaymentController {
     summary: 'Place an order',
     description: `Creates an order and initiates payment.
 
-**For \`PAYSTACK\`:** Returns an \`authorization_url\`. Open this URL in the Paystack mobile SDK or a WebView. The order is created server-side once the Paystack webhook confirms payment — **do not create the order yourself after redirect**.
+**For PAYSTACK:** Returns an authorization_url. Open this in the Paystack mobile SDK or a WebView. The order is created server-side once the Paystack webhook confirms payment.
 
-**For \`CASH_ON_DELIVERY\`:** Order is created immediately. Monitor the order status via Socket.io events.`,
+**For CASH_ON_DELIVERY:** Order is created immediately. Monitor order status via Socket.io events.`,
   })
   @ApiBody({ type: CheckoutDto })
   @ApiResponse({
     status: 200,
-    description: 'Paystack checkout initiated',
+    description: 'Checkout initiated',
     schema: {
       examples: {
         paystack: {
@@ -68,7 +68,7 @@ export class PaymentController {
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Confirm cash received (Rider only)',
-    description: 'Called by the rider once the customer has handed over cash. Marks the order payment as PAID and triggers the restaurant payout cycle.',
+    description: 'Called by the rider once the customer has handed over cash. Marks the order payment as PAID.',
   })
   @ApiBody({
     schema: {
@@ -77,7 +77,7 @@ export class PaymentController {
       properties: { orderId: { type: 'number', example: 42 } },
     },
   })
-  @ApiResponse({ status: 200, description: 'Cash confirmed, payment marked as PAID', schema: { example: { confirmed: true } } })
+  @ApiResponse({ status: 200, description: 'Cash confirmed, payment marked as PAID' })
   @ApiResponse({ status: 401, description: 'Not the assigned rider for this order' })
   confirmCash(
     @GetUser('riderId') riderId: number,
