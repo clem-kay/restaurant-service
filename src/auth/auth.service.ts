@@ -4,18 +4,19 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { LoginDto } from './dto/LoginDto';
 import * as bcrypt from 'bcrypt';
 import { UseraccountService } from 'src/useraccount/useraccount.service';
 import { JwtService } from '@nestjs/jwt';
 import { Tokens, SignIn } from 'src/types';
-import { log } from 'util';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userAccountService: UseraccountService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
   private readonly logger = new Logger(AuthService.name);
 
@@ -25,9 +26,9 @@ export class AuthService {
 
   async refreshTokens(userId: number, rt: string) {
     const user = await this.userAccountService.findOneById(userId);
-    if (!user) throw new ForbiddenException('Access Denied');
+    if (!user || !user.hashedRT) throw new ForbiddenException('Access Denied');
 
-    const rtMatches = bcrypt.compare(rt, user.hashedRT);
+    const rtMatches = await bcrypt.compare(rt, user.hashedRT);
     if (!rtMatches) throw new ForbiddenException('Access Denied');
 
     const tokens = await this.getTokens(user.id, user.username);
@@ -75,22 +76,16 @@ export class AuthService {
   async getTokens(userId: number, username: string): Promise<Tokens> {
     const [at, rt] = await Promise.all([
       this.jwtService.signAsync(
+        { sub: userId, username },
         {
-          sub: userId,
-          username,
-        },
-        {
-          secret: 'at-secret',
+          secret: this.configService.get<string>('AT_SECRET'),
           expiresIn: 60 * 15,
         },
       ),
       this.jwtService.signAsync(
+        { sub: userId, username },
         {
-          sub: userId,
-          username,
-        },
-        {
-          secret: 'rt-secret',
+          secret: this.configService.get<string>('RT_SECRET'),
           expiresIn: 60 * 60 * 24 * 7,
         },
       ),

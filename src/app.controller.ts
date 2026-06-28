@@ -30,7 +30,7 @@ export class AppController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './uploads', // Save files to the 'uploads' folder
+        destination: './uploads',
         filename: (req, file, cb) => {
           // Generate a unique filename
           const uniqueSuffix =

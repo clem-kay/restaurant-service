@@ -1,11 +1,22 @@
-import { ForbiddenException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ClientOrderDto } from './dto/client-order.dto';
 import { OrderStatus, PickUp_Status } from 'src/enums/app.enum';
 import { ConfigService } from '@nestjs/config';
+import { FoodStatus, PaymentStatus, PaymentMethod } from '@prisma/client';
 import Stripe from 'stripe';
+import { Cache } from 'cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { OrderWithFoodCount } from '.';
+
+export interface OrderFilters {
+  foodStatus?: FoodStatus;
+  paymentStatus?: PaymentStatus;
+  paymentMethod?: PaymentMethod;
+  restaurantId?: number;
+}
 
 @Injectable()
 export class OrdersService {
@@ -14,6 +25,7 @@ export class OrdersService {
   private orderMap = new Map<string, CreateOrderDto>();
 
   constructor(
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly prisma: PrismaService,
     private readonly configService:ConfigService
   ) {}
@@ -147,11 +159,19 @@ export class OrdersService {
     this.logger.log('Creating order in database');
     this.logger.debug(`Order data: ${JSON.stringify(order)}`);
     try {
+      // Legacy admin order creation — uses placeholder IDs until full migration
       const createdOrder = await this.prisma.order.create({
         data: {
-          ...order,
-          food_status: OrderStatus.PENDING,
-          totalAmount: totalAmount,
+          restaurantId: (order as any).restaurantId ?? 1,
+          customerId: (order as any).customerId ?? 1,
+          deliveryAddressId: (order as any).deliveryAddressId ?? 1,
+          note: (order as any).other_info ?? (order as any).note,
+          totalAmount,
+          deliveryFee: 0,
+          platformFee: 0,
+          restaurantPayout: totalAmount,
+          foodStatus: 'PENDING',
+          paymentStatus: (order as any).paid ? 'PAID' : 'PENDING',
           orderItems: {
             create: orderItems.map((item) => ({
               quantity: item.quantity,
@@ -160,57 +180,74 @@ export class OrdersService {
             })),
           },
           statusHistory: {
-            create: {
-              status: OrderStatus.PENDING,
-              userAccountId: null,
-            },
+            create: { status: 'PENDING', userAccountId: null },
           },
         },
-        include: {
-          orderItems: true,
-          statusHistory: true,
-        },
+        include: { orderItems: true, statusHistory: true },
       });
       this.logger.log('Successfully created a new order');
-      return {
-        ...createdOrder,
-        orderNumber: `${this.getDatePrefix()} + '/' + ${createdOrder.id.toString}`
-      };
+      return { ...createdOrder, orderNumber: `${await this.getDatePrefix()}/${createdOrder.id}` };
     } catch (error) {
       this.logger.error('Failed to create a new order', error.stack);
       throw new UnauthorizedException(error);
     }
   }
 
-  async findAll(): Promise<any[]> {
-    this.logger.log('Fetching all orders');
+  async findAll(page = 1, limit = 50, filters: OrderFilters = {}): Promise<any> {
+    const skip = (page - 1) * limit;
+    const filterKey = JSON.stringify(filters);
+    const cacheKey = `allOrders:${page}:${limit}:${filterKey}`;
+    this.logger.log(`Fetching orders page=${page} limit=${limit} filters=${filterKey}`);
+
     try {
-      const orders = await this.prisma.order.findMany({
-        include: {
-          orderItems: true,
-        },
-      });
+      const cached = await this.cacheManager.get<any>(cacheKey);
+      if (cached) {
+        this.logger.log('Returning cached orders');
+        return cached;
+      }
 
-      const ordersWithFoodCount = orders.map((order) => ({
-        id: order.id,
-        createdAt: order.createdAt,
-        updatedAt: order.updatedAt,
-        food_status: order.food_status,
-        totalAmount: order.totalAmount,
-        name: order.name,
-        number: order.number,
-        location: order.location,
-        other_info: order.other_info,
-        pickup_status: order.pickup_status,
-        comment: order.comment,
-        paid: order.paid,
-        totalFoodItems: order.orderItems.length,
-        email: order.email,
-        orderNumber: `${this.getDatePrefix()} + '/' + ${order.id.toString}`
-      }));
+      const where: any = {};
+      if (filters.foodStatus)    where.foodStatus    = filters.foodStatus;
+      if (filters.paymentStatus) where.paymentStatus = filters.paymentStatus;
+      if (filters.paymentMethod) where.paymentMethod = filters.paymentMethod;
+      if (filters.restaurantId)  where.restaurantId  = filters.restaurantId;
 
+      const [orders, total] = await Promise.all([
+        this.prisma.order.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            createdAt: true,
+            updatedAt: true,
+            foodStatus: true,
+            totalAmount: true,
+            deliveryFee: true,
+            paymentStatus: true,
+            paymentMethod: true,
+            restaurantId: true,
+            _count: { select: { orderItems: true } },
+          },
+        }),
+        this.prisma.order.count({ where }),
+      ]);
+
+      const result = {
+        data: orders.map((o) => ({
+          ...o,
+          totalFoodItems: o._count.orderItems,
+          orderNumber: `${o.id}`,
+          _count: undefined,
+        })),
+        meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      };
+
+      // Cache filtered results for 30 seconds — orders change frequently
+      await this.cacheManager.set(cacheKey, result, 30_000);
       this.logger.log('Successfully fetched all orders');
-      return ordersWithFoodCount;
+      return result;
     } catch (error) {
       this.logger.error('Failed to fetch all orders', error.stack);
       throw new UnauthorizedException(error);
@@ -231,7 +268,7 @@ export class OrdersService {
         },
       });
       this.logger.log(`Successfully fetched order with ID: ${id}`);
-      return { ...order,orderNumber: `${this.getDatePrefix()} + '/' + ${order.id.toString}`};
+      return { ...order, orderNumber: `${order.id}` };
     } catch (error) {
       this.logger.error(`Failed to fetch order with ID: ${id}`, error.stack);
       throw new UnauthorizedException(error);
@@ -251,7 +288,7 @@ export class OrdersService {
         where: { id },
       });
 
-      if (order.food_status === 'PENDING' || order.food_status === 'Pending') {
+      if (order.foodStatus === 'PENDING') {
         await this.prisma.order.delete({
           where: { id },
         });
@@ -276,7 +313,7 @@ export class OrdersService {
       const updatedOrder = await this.prisma.order.update({
         where: { id },
         data: {
-          food_status: body.status,
+          foodStatus: body.status as any,
           statusHistory: {
             create: {
               status: body.status,
@@ -299,7 +336,7 @@ export class OrdersService {
       const updatedOrder = await this.prisma.order.update({
         where: { id },
         data: {
-          paid: status,
+          paymentStatus: status ? 'PAID' : 'PENDING',
         },
       });
       this.logger.log(`Successfully updated payment status for order with ID: ${id}`);
@@ -346,26 +383,8 @@ export class OrdersService {
 
   async handleCheckoutSessionFailed(sessionId: string) {
     this.logger.log(`Handling checkout session failed for session ID: ${sessionId}`);
-    try {
-      const sessionOrderId = await this.prisma.orderSessionId.findFirst({
-        where: { sessionId },
-        select: { orderId: true, id: true },
-      });
-
-      if (sessionOrderId) {
-        const updatedOrder = await this.updatePayment(sessionOrderId.orderId, false);
-        const updatedFoodStatus = await this.updateFoodStatus(sessionOrderId.orderId, { status: 'CANCELLED', userId: null });
-        if (updatedOrder && updatedFoodStatus) {
-          await this.prisma.orderSessionId.delete({
-            where: { id: sessionOrderId.id },
-          });
-          this.logger.log(`Successfully handled checkout session failure for session ID: ${sessionId}`);
-          return { message: 'success', error: '' };
-        }
-      }
-    } catch (error) {
-      this.logger.error('Failed to handle checkout session failure', error.stack);
-      throw new UnauthorizedException(error);
-    }
+    // Legacy Stripe handler — superseded by Paystack webhook in payment.service.ts
+    this.orderMap.delete(sessionId);
+    return { message: 'success', error: '' };
   }
 }

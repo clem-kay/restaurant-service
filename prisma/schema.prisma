@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,13 +7,84 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Role {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  name      String   @unique
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
 
-  @@map("Role")
+enum UserRole {
+  PLATFORM_ADMIN
+  RESTAURANT_ADMIN
+  CUSTOMER
+  RIDER
+}
+
+enum FoodStatus {
+  PENDING
+  ACCEPTED
+  PREPARING
+  READY
+  PICKED_UP
+  DELIVERED
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  PENDING_ASSIGNMENT
+  ASSIGNED
+  HEADING_TO_RESTAURANT
+  ARRIVED_AT_RESTAURANT
+  PICKED_UP
+  HEADING_TO_CUSTOMER
+  DELIVERED
+  FAILED
+}
+
+enum PaymentMethod {
+  PAYSTACK
+  CASH_ON_DELIVERY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  COD_PENDING
+}
+
+enum VehicleType {
+  MOTORCYCLE
+  BICYCLE
+  CAR
+}
+
+enum OnboardingMethod {
+  SELF_SERVICE
+  MANUAL
+}
+
+// ─────────────────────────────────────────────
+// AUTH / USERS
+// ─────────────────────────────────────────────
+
+model UserAccount {
+  id          Int          @id @default(autoincrement())
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  username    String       @unique
+  password    String?
+  hashedRT    String?
+  role        UserRole
+  isActive    Boolean      @default(true)
+  profile     UserProfile?
+  restaurant  Restaurant?  // set if role = RESTAURANT_ADMIN
+  customer    Customer?    // set if role = CUSTOMER
+  rider       Rider?       // set if role = RIDER
+  statusHistories OrderStatusHistory[]
+
+  @@index([role])
+  @@index([isActive])
+  @@map("UserAccount")
 }
 
 model UserProfile {
@@ -29,7 +94,7 @@ model UserProfile {
   firstname  String
   middlename String?
   lastname   String
-  number     String?
+  phone      String?
   email      String?      @unique
   accountId  Int?         @unique
   account    UserAccount? @relation(fields: [accountId], references: [id])
@@ -37,57 +102,186 @@ model UserProfile {
   @@map("UserProfile")
 }
 
-model UserAccount {
-  id              Int                  @id @default(autoincrement())
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  username        String               @unique
-  password        String?
-  hashedRT        String?
-  user            UserProfile?
-  role            String
-  isActive        Boolean              @default(true)
-  menus           FoodMenu[]
-  statusHistories OrderStatusHistory[]
+// ─────────────────────────────────────────────
+// RESTAURANT
+// ─────────────────────────────────────────────
 
-  @@map("UserAccount")
+model Restaurant {
+  id               Int            @id @default(autoincrement())
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  name             String
+  description      String?
+  logo             String?
+  coverImage       String?
+  address          String
+  latitude         Float
+  longitude        Float
+  phone            String?
+  email            String?
+  isOpen           Boolean        @default(false)
+  isApproved       Boolean        @default(false)
+  onboardingMethod OnboardingMethod @default(SELF_SERVICE)
+  commissionRate   Float          @default(0.10)
+  deliveryFee      Float          @default(0)
+  estimatedMinutes Int            @default(30)
+  paystackSubAccountCode String?  // for split payments
+  ownerId          Int            @unique
+  owner            UserAccount    @relation(fields: [ownerId], references: [id])
+  categories       FoodCategory[]
+  menu             FoodMenu[]
+  orders           Order[]
+  openingHours     OpeningHours[]
+
+  @@index([isApproved, isOpen])
+  @@index([latitude, longitude])
+  @@map("Restaurant")
+}
+
+model OpeningHours {
+  id           Int        @id @default(autoincrement())
+  restaurantId Int
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  dayOfWeek    Int        // 0=Sunday … 6=Saturday
+  openTime     String     // "08:00"
+  closeTime    String     // "22:00"
+  isClosed     Boolean    @default(false)
+
+  @@map("OpeningHours")
+}
+
+// ─────────────────────────────────────────────
+// MENU
+// ─────────────────────────────────────────────
+
+model FoodCategory {
+  id           Int        @id @default(autoincrement())
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  name         String
+  description  String?
+  restaurantId Int
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menu         FoodMenu[]
+
+  @@index([restaurantId])
+  @@map("FoodCategory")
 }
 
 model FoodMenu {
-  id            Int          @id @default(autoincrement())
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  name          String
-  price         Float
-  imageUrl      String?
-  description   String
-  quantity      Int?         @default(1)
-  userAccountId Int // Foreign key referencing UserAccount
-  userAccount   UserAccount  @relation(fields: [userAccountId], references: [id])
-  OrderItem     OrderItem[]
-  categoryId    Int
-  category      FoodCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  id           Int          @id @default(autoincrement())
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  name         String
+  price        Float
+  imageUrl     String?
+  description  String
+  isAvailable  Boolean      @default(true)
+  restaurantId Int
+  restaurant   Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categoryId   Int
+  category     FoodCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  orderItems   OrderItem[]
 
+  @@index([restaurantId, isAvailable])
+  @@index([categoryId])
   @@map("FoodMenu")
 }
 
-model Order {
-  id            Int                  @id @default(autoincrement())
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
-  food_status   String
-  totalAmount   Float
-  name          String
-  number        String
-  location      String
-  other_info    String
-  pickup_status String
-  orderItems    OrderItem[]
-  statusHistory OrderStatusHistory[] // Relation to OrderStatusHistory
-  comment       String?
-  paid          Boolean              @default(false)
-  email         String?
+// ─────────────────────────────────────────────
+// CUSTOMER
+// ─────────────────────────────────────────────
 
+model Customer {
+  id        Int               @id @default(autoincrement())
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  firstName String
+  lastName  String
+  phone     String
+  accountId Int               @unique
+  account   UserAccount       @relation(fields: [accountId], references: [id])
+  addresses CustomerAddress[]
+  orders    Order[]
+  ratings   Rating[]
+
+  @@map("Customer")
+}
+
+model CustomerAddress {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  label      String   // "Home", "Work", "Other"
+  address    String
+  latitude   Float
+  longitude  Float
+  isDefault  Boolean  @default(false)
+  orders     Order[]
+
+  @@map("CustomerAddress")
+}
+
+// ─────────────────────────────────────────────
+// RIDER
+// ─────────────────────────────────────────────
+
+model Rider {
+  id           Int          @id @default(autoincrement())
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  firstName    String
+  lastName     String
+  phone        String
+  vehicleType  VehicleType  @default(MOTORCYCLE)
+  vehiclePlate String?
+  isAvailable  Boolean      @default(false)
+  isApproved   Boolean      @default(false)
+  currentLat   Float?
+  currentLng   Float?
+  totalEarnings Float       @default(0)
+  accountId    Int          @unique
+  account      UserAccount  @relation(fields: [accountId], references: [id])
+  deliveries   Delivery[]
+  ratings      Rating[]
+
+  @@index([isAvailable, isApproved])
+  @@map("Rider")
+}
+
+// ─────────────────────────────────────────────
+// ORDERS & DELIVERY
+// ─────────────────────────────────────────────
+
+model Order {
+  id                Int                  @id @default(autoincrement())
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  restaurantId      Int
+  restaurant        Restaurant           @relation(fields: [restaurantId], references: [id])
+  customerId        Int
+  customer          Customer             @relation(fields: [customerId], references: [id])
+  deliveryAddressId Int
+  deliveryAddress   CustomerAddress      @relation(fields: [deliveryAddressId], references: [id])
+  delivery          Delivery?
+  orderItems        OrderItem[]
+  statusHistory     OrderStatusHistory[]
+  note              String?
+  totalAmount       Float
+  deliveryFee       Float
+  platformFee       Float
+  restaurantPayout  Float
+  foodStatus        FoodStatus           @default(PENDING)
+  paymentMethod     PaymentMethod        @default(PAYSTACK)
+  paymentStatus     PaymentStatus        @default(PENDING)
+  paystackReference String?              @unique
+  rating            Rating?
+
+  @@index([restaurantId, foodStatus])
+  @@index([customerId])
+  @@index([paymentStatus])
+  @@index([createdAt])
   @@map("Order")
 }
 
@@ -110,10 +304,59 @@ model OrderStatusHistory {
   userAccountId Int?
   userAccount   UserAccount? @relation(fields: [userAccountId], references: [id])
   status        String
+  note          String?
   createdAt     DateTime     @default(now())
 
   @@map("OrderStatusHistory")
 }
+
+model Delivery {
+  id           Int            @id @default(autoincrement())
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  orderId      Int            @unique
+  order        Order          @relation(fields: [orderId], references: [id])
+  riderId      Int
+  rider        Rider          @relation(fields: [riderId], references: [id])
+  status       DeliveryStatus @default(ASSIGNED)
+  pickupLat    Float
+  pickupLng    Float
+  dropoffLat   Float
+  dropoffLng   Float
+  estimatedETA DateTime?
+  assignedAt   DateTime       @default(now())
+  pickedUpAt   DateTime?
+  deliveredAt  DateTime?
+  riderEarning Float          @default(0)
+
+  @@index([riderId, status])
+  @@map("Delivery")
+}
+
+// ─────────────────────────────────────────────
+// RATINGS
+// ─────────────────────────────────────────────
+
+model Rating {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  orderId      Int      @unique
+  order        Order    @relation(fields: [orderId], references: [id])
+  customerId   Int
+  customer     Customer @relation(fields: [customerId], references: [id])
+  riderId      Int?
+  rider        Rider?   @relation(fields: [riderId], references: [id])
+  restaurantId Int?
+  riderScore   Int?     // 1-5
+  foodScore    Int?     // 1-5
+  comment      String?
+
+  @@map("Rating")
+}
+
+// ─────────────────────────────────────────────
+// LEGACY (keep until fully migrated)
+// ─────────────────────────────────────────────
 
 model Reservation {
   id             Int      @id @default(autoincrement())
@@ -126,23 +369,4 @@ model Reservation {
   phone          String
 
   @@map("Reservation")
-}
-
-model FoodCategory {
-  id          Int        @id @default(autoincrement())
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  name        String
-  description String?
-  FoodMenu    FoodMenu[]
-
-  @@map("FoodCategory")
-}
-
-model OrderSessionId{
-  id          Int        @id @default(autoincrement())
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  orderId     Int
-  sessionId   String
 }

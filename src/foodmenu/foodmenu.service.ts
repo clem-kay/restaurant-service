@@ -11,8 +11,12 @@ export class FoodmenuService {
   async create(createFoodmenuDto: CreateFoodmenuDto) {
     this.logger.log('Creating a new food menu item: ' + createFoodmenuDto.name);
     try {
+      const { userAccountId, ...rest } = createFoodmenuDto as any;
       const foodMenuItem = await this.prisma.foodMenu.create({
-        data: createFoodmenuDto,
+        data: {
+          ...rest,
+          restaurantId: rest.restaurantId ?? userAccountId ?? 1,
+        },
       });
       this.logger.log('Food menu item created: ' + foodMenuItem.name);
       return foodMenuItem;
@@ -22,11 +26,16 @@ export class FoodmenuService {
     }
   }
 
-  async findAll() {
-    this.logger.log('Fetching all food menu items from the database');
+  async findAll(filters: { isAvailable?: boolean; restaurantId?: number; categoryId?: number } = {}) {
+    this.logger.log(`Fetching food menu items filters=${JSON.stringify(filters)}`);
     try {
-      const foodMenuItems = await this.prisma.foodMenu.findMany();
-      this.logger.log('Successfully fetched all food menu items');
+      const where: any = {};
+      if (filters.isAvailable !== undefined) where.isAvailable = filters.isAvailable;
+      if (filters.restaurantId)              where.restaurantId = filters.restaurantId;
+      if (filters.categoryId)               where.categoryId   = filters.categoryId;
+
+      const foodMenuItems = await this.prisma.foodMenu.findMany({ where });
+      this.logger.log(`Successfully fetched ${foodMenuItems.length} food menu items`);
       return foodMenuItems;
     } catch (error) {
       this.logger.error('Failed to fetch food menu items', error.stack);
@@ -40,7 +49,7 @@ export class FoodmenuService {
       const foodMenuItem = await this.prisma.foodMenu.findUniqueOrThrow({
         where: { id },
         include: {
-          userAccount: true,
+          restaurant: true,
         },
       });
       this.logger.log(`Successfully fetched menu item with ID: ${id}`);
@@ -59,9 +68,10 @@ export class FoodmenuService {
   async update(id: number, updateFoodmenuDto: CreateFoodmenuDto) {
     this.logger.log(`Updating food menu item with ID: ${id}`);
     try {
+      const { userAccountId, ...rest } = updateFoodmenuDto as any;
       const updatedFoodMenuItem = await this.prisma.foodMenu.update({
         where: { id },
-        data: { ...updateFoodmenuDto },
+        data: { ...rest },
       });
       this.logger.log(`Successfully updated food menu item with ID: ${id}`);
       return updatedFoodMenuItem;
@@ -91,11 +101,14 @@ export class FoodmenuService {
     }
   }
 
-  async findAllByCategory(categoryId: number) {
-    this.logger.log(`Fetching food menu items by category ID: ${categoryId}`);
+  async findAllByCategory(categoryId: number, isAvailable?: boolean) {
+    this.logger.log(`Fetching food menu items by category ID: ${categoryId} isAvailable=${isAvailable}`);
     try {
+      const where: any = { categoryId };
+      if (isAvailable !== undefined) where.isAvailable = isAvailable;
+
       const foodMenuItems = await this.prisma.foodMenu.findMany({
-        where: { categoryId },
+        where,
         include: {
           category: true,
         },

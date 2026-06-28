@@ -1,50 +1,38 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Get, Logger, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
-import { CreateDashboardDto } from './dto/create-dashboard.dto';
-import { UpdateDashboardDto } from './dto/update-dashboard.dto';
+import { AtGuard } from 'src/guards/at.guard';
 
+@ApiTags('Dashboard')
+@UseGuards(AtGuard)
+@ApiBearerAuth('access-token')
 @Controller('dashboard')
 export class DashboardController {
+  private readonly logger = new Logger(DashboardController.name);
   constructor(private readonly dashboardService: DashboardService) {}
 
-  @Post()
-  create(@Body() createDashboardDto: CreateDashboardDto) {
-    return this.dashboardService.create(createDashboardDto);
-  }
-
   @Get()
+  @ApiOperation({
+    summary: 'Get dashboard stats (Admin)',
+    description: 'Returns aggregate statistics: total categories, orders, revenue, and menu item count.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard statistics',
+    schema: {
+      example: {
+        totalCategories: 8,
+        totalOrders: 243,
+        totalSales: 18750.0,
+        totalFoodItems: 64,
+        todayOrders: 12,
+        todaySales: 975.0,
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   findAll() {
+    this.logger.log('Fetching dashboard stats');
     return this.dashboardService.findAll();
   }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.dashboardService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateDashboardDto: UpdateDashboardDto,
-  ) {
-    return this.dashboardService.update(+id, updateDashboardDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.dashboardService.remove(+id);
-  }
-
-  // @Get('all-stats')
-  // getAllStats(){
-  //   return this.dashboardService.getAllStats();
-  // }
 }

@@ -1,38 +1,23 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
-
-enum Role {
-  SUPERADMIN = 'SUPERADMIN',
-  ADMIN = 'ADMIN',
-  USER = 'USER',
-  SALES = 'SALES'
-}
 
 export class CreateUseraccountDto {
   @IsNotEmpty()
-  @ApiProperty({
-    type: String,
-    description: 'This is a required property, should be a username',
-  })
+  @ApiProperty({ example: 'john_doe', description: 'Unique username for the account' })
   readonly username: string;
 
   @IsNotEmpty()
-  @ApiProperty({
-    type: String,
-    description:
-      'This is a required property, should be a default password an admin set for the user',
-  })
+  @ApiProperty({ example: 'TempPass123!', description: 'Initial password set by admin — user should change on first login' })
   readonly password: string;
 
-  @IsEnum(Role, {
-    message: 'Role must be either SUPERADMIN, ADMIN, USER, SALES',
-  })
+  @IsEnum(UserRole, { message: `Role must be one of: ${Object.values(UserRole).join(', ')}` })
   @ApiProperty({
-    type: String,
-    description: 'This is a required property',
-    enum: Role,
+    enum: UserRole,
+    example: UserRole.RESTAURANT_ADMIN,
+    description: 'Role determines which features the account can access',
   })
-  readonly role: Role;
+  readonly role: UserRole;
 
   @IsOptional()
   readonly hashRT?: string;

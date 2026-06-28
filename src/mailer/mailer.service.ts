@@ -19,17 +19,11 @@ export class MailerService {
         const oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
         oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 
-        console.log(REFRESH_TOKEN)
-        console.log(CLIENT_SECRET)
-        console.log(REDIRECT_URI)
-        console.log(CLIENT_ID)
-
-        let accessToken;
+        let accessToken: string;
         try {
-            await oAuth2Client.getAccessToken();
-            console.log(accessToken)
+            const tokenResponse = await oAuth2Client.getAccessToken();
+            accessToken = tokenResponse.token;
         } catch (error) {
-            console.error('Failed to fetch access token:', error);
             throw new Error('Failed to fetch access token');
         }
 
@@ -72,7 +66,6 @@ export class MailerService {
             const result = await transport.sendMail(options);
             return result;
         } catch (error) {
-            console.error('Error sending email:', error);
             throw new Error('Failed to send email');
         }
     }

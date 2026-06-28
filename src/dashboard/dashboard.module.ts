@@ -4,8 +4,10 @@ import { DashboardController } from './dashboard.controller';
 import { CategoryService } from 'src/category/category.service';
 import { FoodmenuService } from 'src/foodmenu/foodmenu.service';
 import { OrdersService } from 'src/orders/orders.service';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
+  imports:[CacheModule.register(),],
   controllers: [DashboardController],
   providers: [
     DashboardService,

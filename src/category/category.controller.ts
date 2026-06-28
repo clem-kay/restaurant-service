@@ -8,6 +8,8 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import {
   ApiForbiddenResponse,
@@ -16,6 +18,8 @@ import {
   ApiUnprocessableEntityResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
+  ApiOperation,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -28,6 +32,7 @@ export class CategoryController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a food category' })
   @ApiCreatedResponse({ description: 'Category successfully created.' })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
   @ApiForbiddenResponse({ description: 'Unauthorized Request' })
@@ -37,15 +42,18 @@ export class CategoryController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ description: 'List of categories retrieved successfully.' })
+  @ApiOperation({ summary: 'List categories (filterable by restaurant)' })
+  @ApiOkResponse({ description: 'List of categories.' })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
   @ApiForbiddenResponse({ description: 'Unauthorized Request' })
-  findAll() {
-    return this.categoryService.findAll();
+  @ApiQuery({ name: 'restaurantId', required: false, type: Number, description: 'Filter by restaurant' })
+  findAll(@Query('restaurantId') restaurantId?: string) {
+    return this.categoryService.findAll(restaurantId ? +restaurantId : undefined);
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get a category by ID' })
   @ApiOkResponse({ description: 'Category retrieved successfully.' })
   @ApiNotFoundResponse({ description: 'Category not found.' })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
@@ -56,6 +64,7 @@ export class CategoryController {
 
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update a category' })
   @ApiOkResponse({ description: 'Category updated successfully.' })
   @ApiNotFoundResponse({ description: 'Category not found.' })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
@@ -69,6 +78,7 @@ export class CategoryController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a category and all its menu items' })
   @ApiOkResponse({ description: 'Category deleted successfully.' })
   @ApiNotFoundResponse({ description: 'Category not found.' })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })

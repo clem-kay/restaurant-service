@@ -10,6 +10,8 @@ import {
   Logger,
   Redirect,
   Query,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,7 +20,9 @@ import {
   ApiNotFoundResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
+import { FoodStatus, PaymentStatus, PaymentMethod } from '@prisma/client';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -69,11 +73,29 @@ export class OrdersController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all orders' })
-  @ApiOkResponse({ description: 'Returns a list of all orders' })
-  findAll() {
-    this.logger.debug('Fetching all orders');
-    return this.ordersService.findAll();
+  @ApiOperation({ summary: 'Get all orders (paginated, filterable)' })
+  @ApiOkResponse({ description: 'Returns a paginated list of orders matching the filters' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 50, description: 'Max 100' })
+  @ApiQuery({ name: 'foodStatus', required: false, enum: FoodStatus, description: 'Filter by food preparation status' })
+  @ApiQuery({ name: 'paymentStatus', required: false, enum: PaymentStatus, description: 'Filter by payment status' })
+  @ApiQuery({ name: 'paymentMethod', required: false, enum: PaymentMethod, description: 'Filter by payment method' })
+  @ApiQuery({ name: 'restaurantId', required: false, type: Number, description: 'Filter by restaurant' })
+  findAll(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
+    @Query('foodStatus') foodStatus?: string,
+    @Query('paymentStatus') paymentStatus?: string,
+    @Query('paymentMethod') paymentMethod?: string,
+    @Query('restaurantId') restaurantId?: string,
+  ) {
+    this.logger.debug(`Fetching orders page=${page} limit=${limit}`);
+    return this.ordersService.findAll(page, Math.min(limit, 100), {
+      foodStatus: foodStatus as FoodStatus,
+      paymentStatus: paymentStatus as PaymentStatus,
+      paymentMethod: paymentMethod as PaymentMethod,
+      restaurantId: restaurantId ? +restaurantId : undefined,
+    });
   }
 
   @Get(':id')
