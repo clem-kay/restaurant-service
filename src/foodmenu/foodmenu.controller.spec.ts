@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { FoodmenuController } from './foodmenu.controller';
 import { FoodmenuService } from './foodmenu.service';
 import { CreateFoodmenuDto } from './dto/create-foodmenu.dto';
+import { AtGuard } from 'src/guards/at.guard';
+import { RestaurantContextGuard } from 'src/guards/restaurant-context.guard';
 
 const mockFoodmenuService = {
   create: jest.fn(),
@@ -21,7 +23,12 @@ describe('FoodmenuController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [FoodmenuController],
       providers: [{ provide: FoodmenuService, useValue: mockFoodmenuService }],
-    }).compile();
+    })
+      .overrideGuard(AtGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RestaurantContextGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<FoodmenuController>(FoodmenuController);
     service = module.get(FoodmenuService);
