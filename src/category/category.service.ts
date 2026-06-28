@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -9,115 +14,75 @@ export class CategoryService {
 
   constructor(private prisma: PrismaService) {}
 
-  async create(createCategoryDto: CreateCategoryDto & { restaurantId?: number }) {
-    this.logger.log('Creating a new category');
-    try {
-      const newCategory = await this.prisma.foodCategory.create({
-        data: {
-          name: createCategoryDto.name,
-          description: createCategoryDto.description,
-          restaurantId: createCategoryDto.restaurantId ?? 1,
-        },
-      });
-      this.logger.log('Successfully created a new category');
-      return newCategory;
-    } catch (error) {
-      this.logger.error('Failed to create a new category', error.stack);
-      throw error;
-    }
+  // ─── Restaurant Admin ─────────────────────────────────────────────────────
+
+  async create(restaurantId: number, dto: CreateCategoryDto) {
+    this.logger.log(`Creating category for restaurantId=${restaurantId}`);
+    return this.prisma.foodCategory.create({
+      data: { ...dto, restaurantId },
+    });
   }
+
+  async update(restaurantId: number, id: number, dto: UpdateCategoryDto) {
+    this.logger.log(`Updating category id=${id} for restaurantId=${restaurantId}`);
+    await this.assertOwnership(restaurantId, id);
+    return this.prisma.foodCategory.update({ where: { id }, data: dto });
+  }
+
+  async remove(restaurantId: number, id: number) {
+    this.logger.log(`Deleting category id=${id} for restaurantId=${restaurantId}`);
+    await this.assertOwnership(restaurantId, id);
+
+    await this.prisma.foodMenu.deleteMany({ where: { categoryId: id } });
+    await this.prisma.foodCategory.delete({ where: { id } });
+    return { message: 'Category deleted' };
+  }
+
+  async findMine(restaurantId: number) {
+    this.logger.log(`Fetching categories for restaurantId=${restaurantId}`);
+    const categories = await this.prisma.foodCategory.findMany({
+      where: { restaurantId },
+      include: { _count: { select: { menu: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return categories.map((c) => ({ ...c, menuCount: c._count.menu }));
+  }
+
+  // ─── Public / Platform Admin ──────────────────────────────────────────────
 
   async findAll(restaurantId?: number) {
     this.logger.log(`Fetching categories restaurantId=${restaurantId ?? 'all'}`);
-    try {
-      const where: any = {};
-      if (restaurantId) where.restaurantId = restaurantId;
+    const where: any = {};
+    if (restaurantId) where.restaurantId = restaurantId;
 
-      const categories = await this.prisma.foodCategory.findMany({
-        where,
-        include: {
-          _count: {
-            select: {
-              menu: true,
-            },
-          },
-        },
-      });
-      this.logger.log(`Successfully fetched ${categories.length} categories`);
-      return categories.map((category) => ({
-        ...category,
-        menuCount: category._count.menu,
-      }));
-    } catch (error) {
-      this.logger.error('Failed to fetch all categories', error.stack);
-      throw error;
-    }
+    const categories = await this.prisma.foodCategory.findMany({
+      where,
+      include: { _count: { select: { menu: true } } },
+    });
+    return categories.map((c) => ({ ...c, menuCount: c._count.menu }));
   }
 
   async findOne(id: number) {
-    this.logger.log(`Fetching category with ID: ${id}`);
-    try {
-      const category = await this.prisma.foodCategory.findUniqueOrThrow({
-        where: { id },
-      });
-      this.logger.log(`Successfully fetched category with ID: ${id}`);
-      return category;
-    } catch (error) {
-      this.logger.error(`Failed to fetch category with ID: ${id}`, error.stack);
-      throw error;
-    }
+    this.logger.log(`Fetching category id=${id}`);
+    const category = await this.prisma.foodCategory.findUnique({ where: { id } });
+    if (!category) throw new NotFoundException(`Category ${id} not found`);
+    return category;
   }
 
-  async update(id: number, updateCategoryDto: UpdateCategoryDto) {
-    this.logger.log(`Updating category with ID: ${id}`);
-    try {
-      const updatedCategory = await this.prisma.foodCategory.update({
-        where: { id },
-        data: { ...updateCategoryDto },
-      });
-      this.logger.log(`Successfully updated category with ID: ${id}`);
-      return updatedCategory;
-    } catch (error) {
-      this.logger.error(
-        `Failed to update category with ID: ${id}`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
-
-  async remove(id: number) {
-    this.logger.log(`Deleting category with ID: ${id}`);
-    try {
-      await this.prisma.foodMenu.deleteMany({
-        where: {
-          categoryId: id,
-        },
-      });
-
-      const deleted = await this.prisma.foodCategory.delete({
-        where: {
-          id: id,
-        },
-      });
-
-      if (deleted) {
-        this.logger.log(`Successfully deleted category with ID: ${id}`);
-        return { message: 'success' };
-      } else {
-        this.logger.warn(`Unable to delete category with ID: ${id}`);
-        return { message: 'unable to delete category' };
-      }
-    } catch (error) {
-      this.logger.error(
-        `Failed to delete category with ID: ${id}`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
   async findTotalCategories() {
-    this.logger.log('Getting the total categories');
-    return await this.prisma.foodCategory.count();
+    return this.prisma.foodCategory.count();
+  }
+
+  // ─── Ownership helper ─────────────────────────────────────────────────────
+
+  private async assertOwnership(restaurantId: number, categoryId: number) {
+    const category = await this.prisma.foodCategory.findUnique({
+      where: { id: categoryId },
+      select: { restaurantId: true },
+    });
+    if (!category) throw new NotFoundException(`Category ${categoryId} not found`);
+    if (category.restaurantId !== restaurantId) {
+      throw new ForbiddenException('This category does not belong to your restaurant');
+    }
   }
 }

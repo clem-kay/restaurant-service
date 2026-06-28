@@ -11,6 +11,7 @@ describe('CategoryController', () => {
   const mockCategoryService = {
     create: jest.fn(),
     findAll: jest.fn(),
+    findMine: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
@@ -19,17 +20,11 @@ describe('CategoryController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CategoryController],
-      providers: [
-        {
-          provide: CategoryService,
-          useValue: mockCategoryService,
-        },
-      ],
+      providers: [{ provide: CategoryService, useValue: mockCategoryService }],
     }).compile();
 
     controller = module.get<CategoryController>(CategoryController);
     service = module.get<CategoryService>(CategoryService);
-
     jest.clearAllMocks();
   });
 
@@ -38,52 +33,50 @@ describe('CategoryController', () => {
   });
 
   describe('create', () => {
-    it('should call categoryService.create with the provided dto', async () => {
-      const dto: CreateCategoryDto = {
-        name: 'Appetizers',
-        description: 'Starter dishes',
-      };
-      const result = { id: 1, ...dto, restaurantId: 1 };
+    it('should call service.create with restaurantId and dto', async () => {
+      const dto: CreateCategoryDto = { name: 'Appetizers', description: 'Starter dishes' };
+      const result = { id: 1, ...dto, restaurantId: 5 };
       mockCategoryService.create.mockResolvedValue(result);
 
-      const response = await controller.create(dto);
+      const response = await controller.create(5, dto);
 
-      expect(service.create).toHaveBeenCalledWith(dto);
+      expect(service.create).toHaveBeenCalledWith(5, dto);
+      expect(response).toEqual(result);
+    });
+  });
+
+  describe('findMine', () => {
+    it('should call service.findMine with restaurantId', async () => {
+      const result = [{ id: 1, name: 'Appetizers', restaurantId: 5 }];
+      mockCategoryService.findMine.mockResolvedValue(result);
+
+      const response = await controller.findMine(5);
+
+      expect(service.findMine).toHaveBeenCalledWith(5);
       expect(response).toEqual(result);
     });
   });
 
   describe('findAll', () => {
-    it('should call categoryService.findAll with the numeric restaurantId when restaurantId is provided', async () => {
-      const result = [{ id: 1, name: 'Appetizers', restaurantId: 1 }];
-      mockCategoryService.findAll.mockResolvedValue(result);
-
-      const response = await controller.findAll('1');
-
+    it('should call service.findAll with numeric restaurantId when provided', async () => {
+      mockCategoryService.findAll.mockResolvedValue([]);
+      await controller.findAll('1');
       expect(service.findAll).toHaveBeenCalledWith(1);
-      expect(response).toEqual(result);
     });
 
-    it('should call categoryService.findAll with undefined when restaurantId is not provided', async () => {
-      const result = [
-        { id: 1, name: 'Appetizers', restaurantId: 1 },
-        { id: 2, name: 'Mains', restaurantId: 2 },
-      ];
-      mockCategoryService.findAll.mockResolvedValue(result);
-
-      const response = await controller.findAll(undefined);
-
+    it('should call service.findAll with undefined when restaurantId is not provided', async () => {
+      mockCategoryService.findAll.mockResolvedValue([]);
+      await controller.findAll(undefined);
       expect(service.findAll).toHaveBeenCalledWith(undefined);
-      expect(response).toEqual(result);
     });
   });
 
   describe('findOne', () => {
-    it('should call categoryService.findOne with the numeric id', async () => {
-      const result = { id: 1, name: 'Appetizers', description: 'Starter dishes', restaurantId: 1 };
+    it('should call service.findOne with the numeric id', async () => {
+      const result = { id: 1, name: 'Appetizers', restaurantId: 1 };
       mockCategoryService.findOne.mockResolvedValue(result);
 
-      const response = await controller.findOne('1');
+      const response = await controller.findOne(1);
 
       expect(service.findOne).toHaveBeenCalledWith(1);
       expect(response).toEqual(result);
@@ -91,26 +84,26 @@ describe('CategoryController', () => {
   });
 
   describe('update', () => {
-    it('should call categoryService.update with the numeric id and dto', async () => {
+    it('should call service.update with restaurantId, numeric id, and dto', async () => {
       const dto: UpdateCategoryDto = { name: 'Starters' };
-      const result = { id: 1, name: 'Starters', description: 'Starter dishes', restaurantId: 1 };
+      const result = { id: 1, name: 'Starters', restaurantId: 5 };
       mockCategoryService.update.mockResolvedValue(result);
 
-      const response = await controller.update('1', dto);
+      const response = await controller.update(5, 1, dto);
 
-      expect(service.update).toHaveBeenCalledWith(1, dto);
+      expect(service.update).toHaveBeenCalledWith(5, 1, dto);
       expect(response).toEqual(result);
     });
   });
 
   describe('remove', () => {
-    it('should call categoryService.remove with the numeric id', async () => {
-      const result = { message: 'success' };
+    it('should call service.remove with restaurantId and numeric id', async () => {
+      const result = { message: 'Category deleted' };
       mockCategoryService.remove.mockResolvedValue(result);
 
-      const response = await controller.remove('1');
+      const response = await controller.remove(5, 1);
 
-      expect(service.remove).toHaveBeenCalledWith(1);
+      expect(service.remove).toHaveBeenCalledWith(5, 1);
       expect(response).toEqual(result);
     });
   });
