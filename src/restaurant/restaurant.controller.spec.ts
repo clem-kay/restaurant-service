@@ -159,7 +159,7 @@ describe('RestaurantController', () => {
       const expected = { id: 3, isApproved: true };
       service.setApproval.mockResolvedValue(expected);
 
-      const result = await controller.approve(3, true);
+      const result = await controller.approve(3, { approve: true });
 
       expect(service.setApproval).toHaveBeenCalledWith(3, true);
       expect(result).toBe(expected);

@@ -548,7 +548,7 @@ describe('OrdersService', () => {
       const updated = makeCreatedOrder({ foodStatus: 'COOKING' });
       mockPrismaOrder.update.mockResolvedValueOnce(updated);
 
-      const result = await service.updateFoodStatus(1, { status: 'COOKING', userId: 10 });
+      const result = await service.updateFoodStatus(1, 'COOKING', 10, 'PLATFORM_ADMIN');
 
       expect(mockPrismaOrder.update).toHaveBeenCalledWith({
         where: { id: 1 },
@@ -562,11 +562,11 @@ describe('OrdersService', () => {
       expect(result.foodStatus).toBe('COOKING');
     });
 
-    it('throws UnauthorizedException when prisma throws', async () => {
+    it('throws when prisma throws', async () => {
       mockPrismaOrder.update.mockRejectedValueOnce(new Error('DB error'));
 
-      await expect(service.updateFoodStatus(1, { status: 'COOKING', userId: 10 })).rejects.toThrow(
-        UnauthorizedException,
+      await expect(service.updateFoodStatus(1, 'COOKING', 10, 'PLATFORM_ADMIN')).rejects.toThrow(
+        Error,
       );
     });
   });

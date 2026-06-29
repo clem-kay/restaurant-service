@@ -61,7 +61,7 @@ describe('UseraccountController', () => {
 
       service.create.mockResolvedValue(expectedResult);
 
-      const result = await controller.create(dto);
+      const result = await controller.create(dto, 1, 'PLATFORM_ADMIN');
 
       expect(service.create).toHaveBeenCalledWith(dto);
       expect(result).toEqual(expectedResult);
@@ -77,7 +77,7 @@ describe('UseraccountController', () => {
 
       service.findAll.mockResolvedValue(expectedUsers);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll(1, 'PLATFORM_ADMIN');
 
       expect(service.findAll).toHaveBeenCalled();
       expect(result).toEqual(expectedUsers);

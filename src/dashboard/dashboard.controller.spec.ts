@@ -5,20 +5,18 @@ import { AtGuard } from 'src/guards/at.guard';
 
 describe('DashboardController', () => {
   let controller: DashboardController;
-  let dashboardService: { findAll: jest.Mock };
+  let dashboardService: { getPlatformStats: jest.Mock; getRestaurantStats: jest.Mock };
 
   beforeEach(async () => {
     dashboardService = {
-      findAll: jest.fn(),
+      getPlatformStats: jest.fn(),
+      getRestaurantStats: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DashboardController],
       providers: [
-        {
-          provide: DashboardService,
-          useValue: dashboardService,
-        },
+        { provide: DashboardService, useValue: dashboardService },
       ],
     })
       .overrideGuard(AtGuard)
@@ -32,28 +30,23 @@ describe('DashboardController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('findAll', () => {
-    it('should return the result from dashboardService.findAll()', async () => {
-      const mockStats = {
-        totalCategory: 8,
-        totalorder: 243,
-        totalOrdersForToday: 12,
-        totalOrdersPreviousMonth: 30,
-        totalSalesPreviousMonth: 18750.0,
-        totalOrdersYesterday: 10,
-        totalSalesYesterday: 820.0,
-        totalOrdersthisMonth: 'N/A',
-        totalSalesthisMonth: 'NA',
-        totalTodaySales: 975.0,
-        totalFoodMenu: 64,
-      };
+  it('should call getPlatformStats for PLATFORM_ADMIN', async () => {
+    const mockStats = { totalRestaurants: 5, totalOrders: 100, totalRevenue: 5000 };
+    dashboardService.getPlatformStats.mockResolvedValue(mockStats);
 
-      dashboardService.findAll.mockResolvedValue(mockStats);
+    const result = await controller.findAll(1, 'PLATFORM_ADMIN', undefined);
 
-      const result = await controller.findAll();
+    expect(dashboardService.getPlatformStats).toHaveBeenCalledWith(undefined);
+    expect(result).toEqual(mockStats);
+  });
 
-      expect(dashboardService.findAll).toHaveBeenCalledTimes(1);
-      expect(result).toEqual(mockStats);
-    });
+  it('should call getRestaurantStats for RESTAURANT_ADMIN', async () => {
+    const mockStats = { totalOrders: 20, todaySales: 300 };
+    dashboardService.getRestaurantStats.mockResolvedValue(mockStats);
+
+    const result = await controller.findAll(2, 'RESTAURANT_ADMIN', undefined);
+
+    expect(dashboardService.getRestaurantStats).toHaveBeenCalledWith(2, 'RESTAURANT_ADMIN');
+    expect(result).toEqual(mockStats);
   });
 });

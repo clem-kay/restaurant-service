@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -14,6 +15,7 @@ datasource db {
 enum UserRole {
   PLATFORM_ADMIN
   RESTAURANT_ADMIN
+  RESTAURANT_STAFF
   CUSTOMER
   RIDER
 }
@@ -77,13 +79,17 @@ model UserAccount {
   role        UserRole
   isActive    Boolean      @default(true)
   profile     UserProfile?
-  restaurant  Restaurant?  // set if role = RESTAURANT_ADMIN
-  customer    Customer?    // set if role = CUSTOMER
-  rider       Rider?       // set if role = RIDER
-  statusHistories OrderStatusHistory[]
+  restaurant          Restaurant?  @relation("RestaurantOwner")    // set if role = RESTAURANT_ADMIN
+  managedRestaurant   Restaurant?  @relation("RestaurantStaff", fields: [managedRestaurantId], references: [id])
+  managedRestaurantId Int?
+  customer            Customer?    // set if role = CUSTOMER
+  rider               Rider?       // set if role = RIDER
+  statusHistories     OrderStatusHistory[]
+  notifications       Notification[]
 
   @@index([role])
   @@index([isActive])
+  @@index([managedRestaurantId])
   @@map("UserAccount")
 }
 
@@ -127,7 +133,8 @@ model Restaurant {
   estimatedMinutes Int            @default(30)
   paystackSubAccountCode String?  // for split payments
   ownerId          Int            @unique
-  owner            UserAccount    @relation(fields: [ownerId], references: [id])
+  owner            UserAccount    @relation("RestaurantOwner", fields: [ownerId], references: [id])
+  staff            UserAccount[]  @relation("RestaurantStaff")
   categories       FoodCategory[]
   menu             FoodMenu[]
   orders           Order[]
@@ -260,10 +267,12 @@ model Order {
   updatedAt         DateTime             @updatedAt
   restaurantId      Int
   restaurant        Restaurant           @relation(fields: [restaurantId], references: [id])
-  customerId        Int
-  customer          Customer             @relation(fields: [customerId], references: [id])
-  deliveryAddressId Int
-  deliveryAddress   CustomerAddress      @relation(fields: [deliveryAddressId], references: [id])
+  customerId        Int?
+  customer          Customer?            @relation(fields: [customerId], references: [id])
+  deliveryAddressId Int?
+  deliveryAddress   CustomerAddress?     @relation(fields: [deliveryAddressId], references: [id])
+  walkInName        String?
+  walkInPhone       String?
   delivery          Delivery?
   orderItems        OrderItem[]
   statusHistory     OrderStatusHistory[]
@@ -352,6 +361,25 @@ model Rating {
   comment      String?
 
   @@map("Rating")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model Notification {
+  id        Int         @id @default(autoincrement())
+  createdAt DateTime    @default(now())
+  type      String
+  title     String
+  body      String
+  isRead    Boolean     @default(false)
+  data      Json?
+  userId    Int
+  user      UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("Notification")
 }
 
 // ─────────────────────────────────────────────

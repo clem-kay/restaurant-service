@@ -31,6 +31,7 @@ import {
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { AtGuard } from 'src/guards/at.guard';
 import { RolesGuard } from 'src/guards/roles.guard';
+import { RestaurantContextGuard } from 'src/guards/restaurant-context.guard';
 import { Roles } from 'src/guards/roles.decorator';
 import { GetUser } from 'src/core/decorators/get-user.decorator';
 
@@ -87,6 +88,18 @@ export class CustomerController {
   @ApiResponse({ status: 200, description: 'List of all customers' })
   findAll() {
     return this.customerService.findAll();
+  }
+
+  // ─── Restaurant staff: list customers who ordered from their restaurant ──
+
+  @Get('mine')
+  @UseGuards(AtGuard, RolesGuard, RestaurantContextGuard)
+  @Roles(UserRole.RESTAURANT_ADMIN, UserRole.RESTAURANT_STAFF)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'List customers who ordered from my restaurant (Restaurant Admin/Staff)' })
+  @ApiResponse({ status: 200, description: 'List of restaurant customers' })
+  findMine(@GetUser('restaurantId') restaurantId: number) {
+    return this.customerService.findByRestaurant(restaurantId);
   }
 
   // ─── Admin: find customer by id ───────────────────────────────────────────

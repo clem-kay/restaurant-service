@@ -84,6 +84,20 @@ export class TrackingGateway implements OnGatewayConnection, OnGatewayDisconnect
 
   // ─── Server-side emitters (called from services) ──────────────────────────
 
+  // ─── User joins their personal notification room ─────────────────────────
+  @SubscribeMessage('user:join')
+  handleUserJoin(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { userId: number },
+  ) {
+    const room = `user-${payload.userId}`;
+    client.join(room);
+    this.logger.log(`User ${payload.userId} joined notification room`);
+    return { joined: room };
+  }
+
+  // ─── Server-side emitters (called from services) ──────────────────────────
+
   notifyOrderRoom(orderId: number, event: string, data: any) {
     this.server.to(`order-${orderId}`).emit(event, data);
   }
@@ -94,5 +108,9 @@ export class TrackingGateway implements OnGatewayConnection, OnGatewayDisconnect
 
   notifyRestaurant(restaurantId: number, data: any) {
     this.server.to(`restaurant-${restaurantId}`).emit('order:new', data);
+  }
+
+  notifyUser(userId: number, event: string, data: any) {
+    this.server.to(`user-${userId}`).emit(event, data);
   }
 }

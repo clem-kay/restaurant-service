@@ -60,6 +60,21 @@ export class CustomerService {
     });
   }
 
+  async findByRestaurant(restaurantId: number) {
+    this.logger.log(`Fetching customers for restaurantId=${restaurantId}`);
+    const rows = await this.prisma.order.findMany({
+      where: { restaurantId, customerId: { not: null } },
+      select: { customerId: true },
+      distinct: ['customerId'],
+    });
+    const ids = rows.map((r) => r.customerId).filter(Boolean) as number[];
+    if (ids.length === 0) return [];
+    return this.prisma.customer.findMany({
+      where: { id: { in: ids } },
+      include: { account: { include: { profile: true } } },
+    });
+  }
+
   async findById(id: number) {
     this.logger.log(`Admin: fetching customer id=${id}`);
     const customer = await this.prisma.customer.findUnique({

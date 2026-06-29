@@ -4,20 +4,20 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 /**
- * Resolves the restaurant that belongs to the authenticated account and
- * attaches its ID to `req.user.restaurantId`.
+ * Resolves the restaurant for the authenticated account and attaches its ID
+ * to `req.user.restaurantId`.  Works for both RESTAURANT_ADMIN (looks up by
+ * ownerId) and RESTAURANT_STAFF (reads managedRestaurantId from UserAccount).
  *
- * Must be composed after AtGuard so that `req.user.sub` is already set.
+ * Must be composed after AtGuard so that `req.user.sub` and `req.user.role`
+ * are already set.
  *
  * Usage:
  *   @UseGuards(AtGuard, RestaurantContextGuard)
  *   @GetUser('restaurantId') restaurantId: number
- *
- * Throws 403 if the account has no linked restaurant (e.g. a platform admin
- * or a customer account trying to hit a restaurant-admin route).
  */
 @Injectable()
 export class RestaurantContextGuard implements CanActivate {
@@ -26,24 +26,50 @@ export class RestaurantContextGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const accountId: number = request.user?.sub;
+    const role: string = request.user?.role;
 
     if (!accountId) {
       throw new ForbiddenException('Not authenticated');
     }
 
-    const restaurant = await this.prisma.restaurant.findUnique({
-      where: { ownerId: accountId },
-      select: { id: true },
-    });
-
-    if (!restaurant) {
+    if (role === UserRole.RESTAURANT_ADMIN) {
+      // Primary lookup: is this admin the owner?
+      const owned = await this.prisma.restaurant.findUnique({
+        where: { ownerId: accountId },
+        select: { id: true },
+      });
+      if (owned) {
+        request.user.restaurantId = owned.id;
+        return true;
+      }
+      // Fallback: co-admin linked via managedRestaurantId
+      const account = await this.prisma.userAccount.findUnique({
+        where: { id: accountId },
+        select: { managedRestaurantId: true },
+      });
+      if (account?.managedRestaurantId) {
+        request.user.restaurantId = account.managedRestaurantId;
+        return true;
+      }
       throw new ForbiddenException(
         'No restaurant is linked to this account. Register a restaurant first.',
       );
     }
 
-    // Attach restaurantId so downstream @GetUser('restaurantId') works
-    request.user.restaurantId = restaurant.id;
-    return true;
+    if (role === UserRole.RESTAURANT_STAFF) {
+      const account = await this.prisma.userAccount.findUnique({
+        where: { id: accountId },
+        select: { managedRestaurantId: true },
+      });
+      if (!account?.managedRestaurantId) {
+        throw new ForbiddenException(
+          'No restaurant is assigned to this staff account.',
+        );
+      }
+      request.user.restaurantId = account.managedRestaurantId;
+      return true;
+    }
+
+    throw new ForbiddenException('This route requires a restaurant-scoped account.');
   }
 }

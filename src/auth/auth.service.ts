@@ -31,13 +31,18 @@ export class AuthService {
     const rtMatches = await bcrypt.compare(rt, user.hashedRT);
     if (!rtMatches) throw new ForbiddenException('Access Denied');
 
-    const tokens = await this.getTokens(user.id, user.username);
+    const tokens = await this.getTokens(user.id, user.username, user.role);
     await this.userAccountService.updateRTHash(user.id, tokens.refresh_token);
     return tokens;
   }
 
   async login(loginDTO: LoginDto): Promise<SignIn> {
-    this.logger.debug('login dto receieved for ' + loginDTO.username);
+    try {
+      this.logger.debug('login dto receieved for ' + loginDTO.username);
+    } catch (error) {
+      this.logger.error('Error occurred while logging in: ' + error.message);
+      throw new UnauthorizedException('Username or password invalid');
+    }
     const userAccount = await this.userAccountService.findOneByUsername(
       loginDTO.username.toLowerCase(),
     );
@@ -53,7 +58,7 @@ export class AuthService {
     }
 
     if (userAccount.isActive) {
-      const tokens = await this.getTokens(userAccount.id, userAccount.username);
+      const tokens = await this.getTokens(userAccount.id, userAccount.username, userAccount.role);
       await this.userAccountService.updateRTHash(
         userAccount.id,
         tokens.refresh_token,
@@ -73,10 +78,10 @@ export class AuthService {
     }
   }
 
-  async getTokens(userId: number, username: string): Promise<Tokens> {
+  async getTokens(userId: number, username: string, role: string): Promise<Tokens> {
     const [at, rt] = await Promise.all([
       this.jwtService.signAsync(
-        { sub: userId, username },
+        { sub: userId, username, role },
         {
           secret: this.configService.get<string>('AT_SECRET'),
           expiresIn: 60 * 15,

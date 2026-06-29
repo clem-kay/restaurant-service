@@ -211,7 +211,7 @@ describe('AuthService', () => {
         .mockResolvedValueOnce(accessToken)
         .mockResolvedValueOnce(refreshToken);
 
-      const result = await service.getTokens(userId, username);
+      const result = await service.getTokens(userId, username, 'PLATFORM_ADMIN');
 
       expect(result).toEqual({
         access_token: accessToken,

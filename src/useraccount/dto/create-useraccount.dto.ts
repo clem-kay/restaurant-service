@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsEnum, IsInt, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateUseraccountDto {
   @IsNotEmpty()
@@ -20,5 +20,7 @@ export class CreateUseraccountDto {
   readonly role: UserRole;
 
   @IsOptional()
-  readonly hashRT?: string;
+  @IsInt()
+  @ApiProperty({ required: false, type: Number, description: 'Restaurant ID — required when creating a RESTAURANT_STAFF account' })
+  readonly managedRestaurantId?: number;
 }

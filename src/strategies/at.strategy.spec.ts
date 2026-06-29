@@ -32,7 +32,7 @@ describe('ATStrategy', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (mockConfigService.get as jest.Mock).mockReturnValue('test-secret');
-    strategy = new ATStrategy(mockConfigService);
+    strategy = new ATStrategy(mockConfigService, { userAccount: { findUnique: jest.fn() } } as any);
   });
 
   describe('constructor', () => {
@@ -48,13 +48,13 @@ describe('ATStrategy', () => {
 
   describe('validate', () => {
     it('should return the payload as-is', () => {
-      const payload = { sub: 'user-id-123', username: 'testuser' };
+      const payload = { sub: 'user-id-123', username: 'testuser', role: 'PLATFORM_ADMIN' };
       const result = strategy.validate(payload);
       expect(result).toBe(payload);
     });
 
     it('should return any payload object unchanged', () => {
-      const payload = { sub: 'another-id', username: 'anotheruser' };
+      const payload = { sub: 'another-id', username: 'anotheruser', role: 'RESTAURANT_ADMIN' };
       const result = strategy.validate(payload);
       expect(result).toEqual(payload);
     });

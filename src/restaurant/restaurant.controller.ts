@@ -148,8 +148,8 @@ export class RestaurantController {
     },
   })
   @ApiResponse({ status: 200, description: 'Approval status updated' })
-  approve(@Param('id', ParseIntPipe) id: number, @Body('approve', ParseBoolPipe) approve: boolean) {
-    return this.restaurantService.setApproval(id, approve);
+  approve(@Param('id', ParseIntPipe) id: number, @Body() body: { approve: boolean }) {
+    return this.restaurantService.setApproval(id, body.approve);
   }
 
   @Get('admin/pending')
