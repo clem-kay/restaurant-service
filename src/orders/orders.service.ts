@@ -228,6 +228,11 @@ export class OrdersService {
             paymentStatus: true,
             paymentMethod: true,
             restaurantId: true,
+            walkInName: true,
+            walkInPhone: true,
+            note: true,
+            restaurant: { select: { id: true, name: true } },
+            customer: { select: { firstName: true, lastName: true, phone: true } },
             _count: { select: { orderItems: true } },
           },
         }),
@@ -241,7 +246,10 @@ export class OrdersService {
           orderNumber: `${o.id}`,
           _count: undefined,
         })),
-        meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       };
 
       // Cache filtered results for 30 seconds — orders change frequently
@@ -307,27 +315,102 @@ export class OrdersService {
     }
   }
 
-  async updateFoodStatus(id: number, body: { status: string; userId: number }) {
-    this.logger.log(`Updating food status for order with ID: ${id} to ${body.status}`);
+  async updateFoodStatus(id: number, status: string, actorId: number, role: string) {
+    this.logger.log(`Updating food status for order ${id} to ${status} by actor ${actorId} (${role})`);
     try {
+      // Restaurant staff/admin can only update orders for their own restaurant
+      if (role === 'RESTAURANT_ADMIN' || role === 'RESTAURANT_STAFF') {
+        const account = await this.prisma.userAccount.findUnique({
+          where: { id: actorId },
+          select: { managedRestaurantId: true },
+        });
+        let restaurantId = account?.managedRestaurantId;
+        if (!restaurantId) {
+          // Check if owner
+          const owned = await this.prisma.restaurant.findUnique({
+            where: { ownerId: actorId },
+            select: { id: true },
+          });
+          restaurantId = owned?.id ?? null;
+        }
+        if (restaurantId) {
+          const order = await this.prisma.order.findUnique({ where: { id }, select: { restaurantId: true } });
+          if (!order) throw new ForbiddenException('Order not found');
+          if (order.restaurantId !== restaurantId) throw new ForbiddenException('Order does not belong to your restaurant');
+        }
+      }
       const updatedOrder = await this.prisma.order.update({
         where: { id },
         data: {
-          foodStatus: body.status as any,
-          statusHistory: {
-            create: {
-              status: body.status,
-              userAccountId: body.userId,
-            },
-          },
+          foodStatus: status as any,
+          statusHistory: { create: { status, userAccountId: actorId } },
         },
       });
-      this.logger.log(`Successfully updated food status for order with ID: ${id}`);
+      this.logger.log(`Successfully updated food status for order ${id}`);
       return updatedOrder;
     } catch (error) {
-      this.logger.error(`Failed to update food status for order with ID: ${id}`, error.stack);
-      throw new UnauthorizedException(error);
+      this.logger.error(`Failed to update food status for order ${id}`, error.stack);
+      throw error;
     }
+  }
+
+  async createWalkInOrder(
+    restaurantId: number,
+    staffId: number,
+    dto: { customerName: string; customerPhone?: string; note?: string; items: { foodMenuId: number; quantity: number }[] },
+  ) {
+    this.logger.log(`Walk-in order for restaurant ${restaurantId} by staff ${staffId}`);
+
+    // Fetch menu items to get prices
+    const menuIds = dto.items.map((i) => i.foodMenuId);
+    const menuItems = await this.prisma.foodMenu.findMany({
+      where: { id: { in: menuIds }, restaurantId },
+      select: { id: true, price: true, name: true },
+    });
+
+    if (menuItems.length !== menuIds.length) {
+      throw new ForbiddenException('Some menu items do not belong to this restaurant');
+    }
+
+    const priceMap = new Map(menuItems.map((m) => [m.id, m.price]));
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { deliveryFee: true, commissionRate: true },
+    });
+
+    const subtotal = dto.items.reduce((sum, item) => sum + (priceMap.get(item.foodMenuId) ?? 0) * item.quantity, 0);
+    const platformFee = subtotal * (restaurant.commissionRate ?? 0.1);
+    const restaurantPayout = subtotal - platformFee;
+
+    const order = await this.prisma.order.create({
+      data: {
+        restaurantId,
+        walkInName: dto.customerName,
+        walkInPhone: dto.customerPhone ?? null,
+        note: dto.note ?? null,
+        totalAmount: subtotal,
+        deliveryFee: 0,
+        platformFee,
+        restaurantPayout,
+        foodStatus: 'ACCEPTED' as any,
+        paymentMethod: 'CASH_ON_DELIVERY' as any,
+        paymentStatus: 'COD_PENDING' as any,
+        orderItems: {
+          create: dto.items.map((item) => ({
+            foodMenuId: item.foodMenuId,
+            quantity: item.quantity,
+            price: priceMap.get(item.foodMenuId) ?? 0,
+          })),
+        },
+        statusHistory: {
+          create: { status: 'ACCEPTED', userAccountId: staffId },
+        },
+      },
+      include: { orderItems: true },
+    });
+
+    this.logger.log(`Walk-in order ${order.id} created`);
+    return order;
   }
 
   async updatePayment(id: number, status: boolean) {

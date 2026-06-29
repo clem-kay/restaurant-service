@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { OnboardingMethod, UserRole } from '@prisma/client';
@@ -41,8 +42,29 @@ export class RestaurantService {
 
   // ─── Manual: platform admin creates a restaurant on behalf of an owner ────
 
-  async manualCreate(dto: CreateRestaurantDto & { ownerId: number; isApproved?: boolean }) {
-    const { ownerId, isApproved = true, ...rest } = dto;
+  async manualCreate(
+    dto: CreateRestaurantDto & {
+      ownerId?: number;
+      isApproved?: boolean;
+      adminUsername?: string;
+      adminPassword?: string;
+    },
+  ) {
+    const { ownerId: rawOwnerId, isApproved = true, adminUsername, adminPassword, ...rest } = dto;
+
+    let ownerId = rawOwnerId;
+
+    // Create admin account on-the-fly if credentials provided instead of ownerId
+    if (!ownerId) {
+      if (!adminUsername || !adminPassword) {
+        throw new BadRequestException('Provide either ownerId or adminUsername + adminPassword');
+      }
+      const hashed = await bcrypt.hash(adminPassword, 10);
+      const adminAccount = await this.prisma.userAccount.create({
+        data: { username: adminUsername.toLowerCase(), password: hashed, role: UserRole.RESTAURANT_ADMIN },
+      });
+      ownerId = adminAccount.id;
+    }
 
     const existing = await this.prisma.restaurant.findUnique({ where: { ownerId } });
     if (existing) throw new BadRequestException('Owner already has a restaurant');

@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { CreateUseraccountDto } from './dto/create-useraccount.dto';
 import * as bcrypt from 'bcrypt';
 import { hashPassword } from 'src/core/helpers';
@@ -81,28 +82,96 @@ export class UseraccountService {
     }
   }
 
-  async create(userAccount: CreateUseraccountDto) {
+  async create(dto: CreateUseraccountDto) {
     this.logger.log('Creating a new user account');
     try {
+      const { username, password, role, managedRestaurantId } = dto;
       const userCreated = await this.prisma.userAccount.create({
         data: {
-          ...userAccount,
-          username: userAccount.username.toLowerCase(),
-          password: await hashPassword(userAccount.password),
+          username: username.toLowerCase(),
+          password: await hashPassword(password),
+          role,
+          ...(managedRestaurantId !== undefined && { managedRestaurantId }),
         },
       });
       this.logger.log('Successfully created a new user account');
-      const userReturn = {
-        username:userCreated.username,
-        role:userCreated.role,
-        isActive:userCreated.isActive,
-        createdAt:userCreated.createdAt
-      }
-      return { user: userReturn, message: 'success' };
+      return {
+        user: {
+          username: userCreated.username,
+          role: userCreated.role,
+          isActive: userCreated.isActive,
+          createdAt: userCreated.createdAt,
+        },
+        message: 'success',
+      };
     } catch (error) {
       this.logger.error('Failed to create a new user account', error.stack);
       throw error;
     }
+  }
+
+  async createManagedAccount(adminId: number, dto: CreateUseraccountDto) {
+    this.logger.log(`RESTAURANT_ADMIN ${adminId} creating managed account (role: ${dto.role ?? 'RESTAURANT_STAFF'})`);
+    // Find the restaurant — admin may be owner or co-admin
+    let restaurantId: number | undefined;
+    const owned = await this.prisma.restaurant.findUnique({
+      where: { ownerId: adminId },
+      select: { id: true },
+    });
+    if (owned) {
+      restaurantId = owned.id;
+    } else {
+      const account = await this.prisma.userAccount.findUnique({
+        where: { id: adminId },
+        select: { managedRestaurantId: true },
+      });
+      if (account?.managedRestaurantId) restaurantId = account.managedRestaurantId;
+    }
+    if (!restaurantId) {
+      throw new ForbiddenException('No restaurant linked to your account');
+    }
+    const role: UserRole =
+      dto.role === UserRole.RESTAURANT_STAFF || dto.role === UserRole.RESTAURANT_ADMIN
+        ? dto.role
+        : UserRole.RESTAURANT_STAFF;
+
+    return this.create({ ...dto, role, managedRestaurantId: restaurantId });
+  }
+
+  async findStaffByOwner(adminId: number) {
+    this.logger.log(`Fetching staff for restaurant administered by account ${adminId}`);
+    let restaurantId: number | undefined;
+    const owned = await this.prisma.restaurant.findUnique({
+      where: { ownerId: adminId },
+      select: { id: true },
+    });
+    if (owned) {
+      restaurantId = owned.id;
+    } else {
+      const account = await this.prisma.userAccount.findUnique({
+        where: { id: adminId },
+        select: { managedRestaurantId: true },
+      });
+      if (account?.managedRestaurantId) restaurantId = account.managedRestaurantId;
+    }
+    if (!restaurantId) return [];
+    return this.prisma.userAccount.findMany({
+      where: { managedRestaurantId: restaurantId },
+      select: { id: true, username: true, role: true, isActive: true, createdAt: true },
+    });
+  }
+
+  async findTeamForStaff(staffId: number) {
+    this.logger.log(`Fetching team for staff account ${staffId}`);
+    const account = await this.prisma.userAccount.findUnique({
+      where: { id: staffId },
+      select: { managedRestaurantId: true },
+    });
+    if (!account?.managedRestaurantId) return [];
+    return this.prisma.userAccount.findMany({
+      where: { managedRestaurantId: account.managedRestaurantId },
+      select: { id: true, username: true, role: true, isActive: true, createdAt: true },
+    });
   }
 
   async findOneByUsername(username: string) {

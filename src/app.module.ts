@@ -27,6 +27,7 @@ import { DeliveryModule } from './delivery/delivery.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { CustomerModule } from './customer/customer.module';
 import { RiderModule } from './rider/rider.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { RiderModule } from './rider/rider.module';
     TrackingModule,
     CustomerModule,
     RiderModule,
+    NotificationModule,
     LoggerModule,
   ],
   controllers: [AppController],

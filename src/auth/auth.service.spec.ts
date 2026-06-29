@@ -211,7 +211,7 @@ describe('AuthService', () => {
         .mockResolvedValueOnce(accessToken)
         .mockResolvedValueOnce(refreshToken);
 
-      const result = await service.getTokens(userId, username);
+      const result = await service.getTokens(userId, username, 'PLATFORM_ADMIN');
 
       expect(result).toEqual({
         access_token: accessToken,
@@ -221,7 +221,7 @@ describe('AuthService', () => {
       expect(mockJwtService.signAsync).toHaveBeenCalledTimes(2);
 
       expect(mockJwtService.signAsync).toHaveBeenCalledWith(
-        { sub: userId, username },
+        { sub: userId, username, role: 'PLATFORM_ADMIN' },
         { secret: 'at-secret', expiresIn: 60 * 15 },
       );
 

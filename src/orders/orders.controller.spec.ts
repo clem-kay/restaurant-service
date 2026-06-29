@@ -4,6 +4,9 @@ import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { ClientOrderDto } from './dto/client-order.dto';
+import { AtGuard } from 'src/guards/at.guard';
+import { RolesGuard } from 'src/guards/roles.guard';
+import { RestaurantContextGuard } from 'src/guards/restaurant-context.guard';
 
 const mockOrdersService = {
   getTotalOrderToday: jest.fn(),
@@ -34,7 +37,11 @@ describe('OrdersController', () => {
         },
       ],
     })
-      .overrideGuard(Object as any)
+      .overrideGuard(AtGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RestaurantContextGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
@@ -185,14 +192,14 @@ describe('OrdersController', () => {
 
   describe('updateStatus', () => {
     it('should call ordersService.updateFoodStatus with the numeric id and body, and return its result', async () => {
-      const body = { status: 'COOKING', userId: 10 };
+      const body = { status: 'COOKING' };
       const mockResult = { id: 5, foodStatus: 'COOKING' };
       mockOrdersService.updateFoodStatus.mockResolvedValue(mockResult);
 
-      const result = controller.updateStatus('5', body);
+      const result = controller.updateStatus('5', body, 10, 'PLATFORM_ADMIN');
 
       expect(service.updateFoodStatus).toHaveBeenCalledTimes(1);
-      expect(service.updateFoodStatus).toHaveBeenCalledWith(5, body);
+      expect(service.updateFoodStatus).toHaveBeenCalledWith(5, 'COOKING', 10, 'PLATFORM_ADMIN');
       await expect(result).resolves.toEqual(mockResult);
     });
   });

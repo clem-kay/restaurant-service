@@ -3,6 +3,7 @@ import { CustomerController } from './customer.controller';
 import { CustomerService } from './customer.service';
 import { AtGuard } from 'src/guards/at.guard';
 import { RolesGuard } from 'src/guards/roles.guard';
+import { RestaurantContextGuard } from 'src/guards/restaurant-context.guard';
 import {
   CreateCustomerDto,
   CreateAddressDto,
@@ -43,6 +44,8 @@ describe('CustomerController', () => {
       .overrideGuard(AtGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RestaurantContextGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

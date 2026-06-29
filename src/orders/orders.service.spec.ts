@@ -395,7 +395,10 @@ describe('OrdersService', () => {
           }),
         );
         expect(mockPrismaOrder.count).toHaveBeenCalledWith({ where: {} });
-        expect(result.meta).toEqual({ total: 1, page: 1, limit: 50, totalPages: 1 });
+        expect(result.total).toBe(1);
+        expect(result.page).toBe(1);
+        expect(result.limit).toBe(50);
+        expect(result.totalPages).toBe(1);
         expect(result.data[0].totalFoodItems).toBe(2);
         expect(result.data[0]._count).toBeUndefined();
       });
@@ -462,7 +465,7 @@ describe('OrdersService', () => {
 
         expect(mockCacheManager.set).toHaveBeenCalledWith(
           'allOrders:1:50:{}',
-          expect.objectContaining({ meta: expect.any(Object) }),
+          expect.objectContaining({ total: expect.any(Number), page: expect.any(Number) }),
           30_000,
         );
       });
@@ -548,7 +551,7 @@ describe('OrdersService', () => {
       const updated = makeCreatedOrder({ foodStatus: 'COOKING' });
       mockPrismaOrder.update.mockResolvedValueOnce(updated);
 
-      const result = await service.updateFoodStatus(1, { status: 'COOKING', userId: 10 });
+      const result = await service.updateFoodStatus(1, 'COOKING', 10, 'PLATFORM_ADMIN');
 
       expect(mockPrismaOrder.update).toHaveBeenCalledWith({
         where: { id: 1 },
@@ -562,11 +565,11 @@ describe('OrdersService', () => {
       expect(result.foodStatus).toBe('COOKING');
     });
 
-    it('throws UnauthorizedException when prisma throws', async () => {
+    it('throws when prisma throws', async () => {
       mockPrismaOrder.update.mockRejectedValueOnce(new Error('DB error'));
 
-      await expect(service.updateFoodStatus(1, { status: 'COOKING', userId: 10 })).rejects.toThrow(
-        UnauthorizedException,
+      await expect(service.updateFoodStatus(1, 'COOKING', 10, 'PLATFORM_ADMIN')).rejects.toThrow(
+        Error,
       );
     });
   });

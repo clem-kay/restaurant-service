@@ -1,5 +1,5 @@
 import {
-  Body, Controller, HttpCode, HttpStatus, Logger, Post, Req, UseGuards,
+  Body, Controller, HttpCode, HttpStatus, Logger, Post, Req, UnauthorizedException, UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags,
@@ -40,8 +40,13 @@ export class AuthController {
   })
   @ApiResponse({ status: 403, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto) {
-    this.logger.log(`Login attempt for user: ${loginDto.username}`);
-    return this.authService.login(loginDto);
+    try {
+      this.logger.log(`Login attempt for user: ${loginDto.username}`);
+      return this.authService.login(loginDto);
+    } catch (error) {
+      this.logger.error('Error occurred while logging in: ' + error.message);
+      throw new UnauthorizedException('Username or password invalid');
+    }
   }
 
   @Post('logout')

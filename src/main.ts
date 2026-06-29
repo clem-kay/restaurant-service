@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe, Logger } from '@nestjs/common';
-import { json } from 'express';
 import helmet from 'helmet';
 import * as compression from 'compression';
 
@@ -22,9 +21,6 @@ async function bootstrap() {
 
   // ─── GZIP compression ─────────────────────────────────────────────────────
   app.use(compression());
-
-  // Raw body needed for Paystack webhook HMAC verification
-  app.use('/api/v1/payment/webhook/paystack', json({ type: '*/*' }));
 
   // ─── CORS ─────────────────────────────────────────────────────────────────
   const allowedOrigins = process.env.ALLOWED_ORIGINS
@@ -110,7 +106,7 @@ See the Mobile Developer Guide for full event documentation.
     }),
   );
 
-  const port = process.env.PORT ?? 3000;
+  const port = process.env.PORT ?? 8080;
   await app.listen(port);
   logger.log(`Application running on http://localhost:${port}`);
   logger.log(`Swagger docs at http://localhost:${port}/docs`);

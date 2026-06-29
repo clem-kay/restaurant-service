@@ -1,82 +1,140 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { CreateDashboardDto } from './dto/create-dashboard.dto';
-import { UpdateDashboardDto } from './dto/update-dashboard.dto';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CategoryService } from 'src/category/category.service';
-import { FoodmenuService } from 'src/foodmenu/foodmenu.service';
-import { OrdersService } from 'src/orders/orders.service';
-import { DashBoardStats } from 'src/types/stats.type';
+import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class DashboardService {
-  constructor(
-    private prisma: PrismaService,
-    private readonly categoryService: CategoryService,
-    private readonly foodMenuService: FoodmenuService,
-    private readonly orderService: OrdersService,
-  ) {}
-
   private readonly logger = new Logger(DashboardService.name);
 
-  create(createDashboardDto: CreateDashboardDto) {
-    return 'This action adds a new dashboard';
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
-    this.logger.log('Getting all the stats from the database');
-    // categories
-    const allCategories = await this.categoryService.findTotalCategories();
-    //orders
-    const allOrders = await this.orderService.findTotalOrders();
-    const totalOrdersForToday = await this.orderService.getTotalOrderToday();
-    this.logger.log('Calculating the total sales for today');
-    const totalTodaySales = totalOrdersForToday.reduce(
-      (sum, item) => sum + item.totalAmount,
-      0,
-    );
-    this.logger.log('Calculating the total sales for previous month');
-    const totalOrdersPreviousMonth =
-      await this.orderService.getTotalOrdersPreviousMonth();
-    const totalSalesPreviousMonth = totalOrdersPreviousMonth.reduce(
-      (sum, item) => sum + item.totalAmount,
-      0,
-    );
-    this.logger.log('Calculating the total sales for yesterday');
-    const totalOrdersYesterday =
-      await this.orderService.getTotalOrderYesterday();
-    const totalSalesYesterday = totalOrdersYesterday.reduce(
-      (sum, item) => sum + item.totalAmount,
-      0,
-    );
-    //foodmenu
-    this.logger.log('Gettng the total menu');
-    const totalFoodMenu = await this.foodMenuService.findTotalFoodMenu();
+  async getPlatformStats(restaurantId?: number) {
+    this.logger.log(`Getting platform stats${restaurantId ? ` for restaurant ${restaurantId}` : ''}`);
+
+    if (restaurantId) {
+      // Scoped view: PLATFORM_ADMIN drilled into a specific restaurant
+      return this.getRestaurantScopedStats(restaurantId);
+    }
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+    const [
+      totalRestaurants,
+      pendingApprovals,
+      totalUsers,
+      totalCustomers,
+      totalRiders,
+      totalOrders,
+      todayOrders,
+      allRevenue,
+      todayRevenue,
+      totalFoodItems,
+      totalCategories,
+    ] = await Promise.all([
+      this.prisma.restaurant.count(),
+      this.prisma.restaurant.count({ where: { isApproved: false } }),
+      this.prisma.userAccount.count({ where: { role: { in: [UserRole.RESTAURANT_ADMIN, UserRole.RESTAURANT_STAFF] } } }),
+      this.prisma.customer.count(),
+      this.prisma.rider.count(),
+      this.prisma.order.count(),
+      this.prisma.order.count({ where: { createdAt: { gte: todayStart, lt: todayEnd } } }),
+      this.prisma.order.aggregate({ _sum: { totalAmount: true } }),
+      this.prisma.order.aggregate({ _sum: { totalAmount: true }, where: { createdAt: { gte: todayStart, lt: todayEnd } } }),
+      this.prisma.foodMenu.count(),
+      this.prisma.foodCategory.count(),
+    ]);
 
     return {
-      totalCategory: allCategories,
-      totalorder: allOrders,
-      totalOrdersForToday: totalOrdersForToday.length,
-      totalOrdersPreviousMonth: totalOrdersPreviousMonth.length,
-      totalSalesPreviousMonth: totalSalesPreviousMonth,
-      totalOrdersYesterday: totalOrdersYesterday.length,
-      totalSalesYesterday: totalSalesYesterday,
-      totalOrdersthisMonth: 'N/A',
-      totalSalesthisMonth: 'NA',
-      totalTodaySales: totalTodaySales,
-      totalFoodMenu: totalFoodMenu,
+      totalRestaurants,
+      pendingApprovals,
+      totalUsers,
+      totalCustomers,
+      totalRiders,
+      totalOrders,
+      todayOrders,
+      totalRevenue: allRevenue._sum.totalAmount ?? 0,
+      todaySales: todayRevenue._sum.totalAmount ?? 0,
+      totalFoodItems,
+      totalCategories,
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} dashboard`;
+  async getRestaurantStats(userId: number, role: UserRole) {
+    this.logger.log(`Getting restaurant stats for user ${userId} (${role})`);
+
+    // Resolve the restaurantId for this user
+    let restaurantId: number | null = null;
+
+    if (role === UserRole.RESTAURANT_ADMIN) {
+      const owned = await this.prisma.restaurant.findUnique({
+        where: { ownerId: userId },
+        select: { id: true },
+      });
+      if (owned) {
+        restaurantId = owned.id;
+      } else {
+        const account = await this.prisma.userAccount.findUnique({
+          where: { id: userId },
+          select: { managedRestaurantId: true },
+        });
+        restaurantId = account?.managedRestaurantId ?? null;
+      }
+    } else if (role === UserRole.RESTAURANT_STAFF) {
+      const account = await this.prisma.userAccount.findUnique({
+        where: { id: userId },
+        select: { managedRestaurantId: true },
+      });
+      restaurantId = account?.managedRestaurantId ?? null;
+    }
+
+    if (!restaurantId) {
+      return { totalOrders: 0, todayOrders: 0, totalRevenue: 0, todaySales: 0, totalFoodItems: 0, totalCategories: 0 };
+    }
+
+    return this.getRestaurantScopedStats(restaurantId);
   }
 
-  update(id: number, updateDashboardDto: UpdateDashboardDto) {
-    return `This action updates a #${id} dashboard`;
-  }
+  private async getRestaurantScopedStats(restaurantId: number) {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
-  remove(id: number) {
-    return `This action removes a #${id} dashboard`;
-  }
+    const [
+      totalOrders,
+      todayOrders,
+      allRevenue,
+      todayRevenue,
+      prevMonthOrders,
+      prevMonthRevenue,
+      totalFoodItems,
+      totalCategories,
+      totalStaff,
+    ] = await Promise.all([
+      this.prisma.order.count({ where: { restaurantId } }),
+      this.prisma.order.count({ where: { restaurantId, createdAt: { gte: todayStart, lt: todayEnd } } }),
+      this.prisma.order.aggregate({ _sum: { totalAmount: true }, where: { restaurantId } }),
+      this.prisma.order.aggregate({ _sum: { totalAmount: true }, where: { restaurantId, createdAt: { gte: todayStart, lt: todayEnd } } }),
+      this.prisma.order.count({ where: { restaurantId, createdAt: { gte: prevMonthStart, lte: prevMonthEnd } } }),
+      this.prisma.order.aggregate({ _sum: { totalAmount: true }, where: { restaurantId, createdAt: { gte: prevMonthStart, lte: prevMonthEnd } } }),
+      this.prisma.foodMenu.count({ where: { restaurantId } }),
+      this.prisma.foodCategory.count({ where: { restaurantId } }),
+      this.prisma.userAccount.count({ where: { managedRestaurantId: restaurantId } }),
+    ]);
 
+    return {
+      totalOrders,
+      todayOrders,
+      totalRevenue: allRevenue._sum.totalAmount ?? 0,
+      todaySales: todayRevenue._sum.totalAmount ?? 0,
+      prevMonthOrders,
+      prevMonthRevenue: prevMonthRevenue._sum.totalAmount ?? 0,
+      totalFoodItems,
+      totalCategories,
+      totalStaff,
+    };
+  }
 }

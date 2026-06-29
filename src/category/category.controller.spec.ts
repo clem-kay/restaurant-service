@@ -3,6 +3,8 @@ import { CategoryController } from './category.controller';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { AtGuard } from 'src/guards/at.guard';
+import { RestaurantContextGuard } from 'src/guards/restaurant-context.guard';
 
 describe('CategoryController', () => {
   let controller: CategoryController;
@@ -21,7 +23,12 @@ describe('CategoryController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CategoryController],
       providers: [{ provide: CategoryService, useValue: mockCategoryService }],
-    }).compile();
+    })
+      .overrideGuard(AtGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RestaurantContextGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<CategoryController>(CategoryController);
     service = module.get<CategoryService>(CategoryService);
