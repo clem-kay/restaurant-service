@@ -47,15 +47,15 @@ describe('ATStrategy', () => {
   });
 
   describe('validate', () => {
-    it('should return the payload as-is', () => {
+    it('should return the payload as-is when role is present', async () => {
       const payload = { sub: 'user-id-123', username: 'testuser', role: 'PLATFORM_ADMIN' };
-      const result = strategy.validate(payload);
-      expect(result).toBe(payload);
+      const result = await strategy.validate(payload);
+      expect(result).toEqual(payload);
     });
 
-    it('should return any payload object unchanged', () => {
+    it('should return any payload object unchanged when role is present', async () => {
       const payload = { sub: 'another-id', username: 'anotheruser', role: 'RESTAURANT_ADMIN' };
-      const result = strategy.validate(payload);
+      const result = await strategy.validate(payload);
       expect(result).toEqual(payload);
     });
   });

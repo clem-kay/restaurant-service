@@ -4,6 +4,9 @@ import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { ClientOrderDto } from './dto/client-order.dto';
+import { AtGuard } from 'src/guards/at.guard';
+import { RolesGuard } from 'src/guards/roles.guard';
+import { RestaurantContextGuard } from 'src/guards/restaurant-context.guard';
 
 const mockOrdersService = {
   getTotalOrderToday: jest.fn(),
@@ -34,7 +37,11 @@ describe('OrdersController', () => {
         },
       ],
     })
-      .overrideGuard(Object as any)
+      .overrideGuard(AtGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RestaurantContextGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

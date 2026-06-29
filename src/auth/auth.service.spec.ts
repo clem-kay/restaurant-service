@@ -221,7 +221,7 @@ describe('AuthService', () => {
       expect(mockJwtService.signAsync).toHaveBeenCalledTimes(2);
 
       expect(mockJwtService.signAsync).toHaveBeenCalledWith(
-        { sub: userId, username },
+        { sub: userId, username, role: 'PLATFORM_ADMIN' },
         { secret: 'at-secret', expiresIn: 60 * 15 },
       );
 
